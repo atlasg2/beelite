@@ -7,8 +7,9 @@ takeoff → syncs into a Google Sheet that does the bid math.
 - **One source of truth per concern** (below). Never restate a fact in two docs — link instead.
 - **Contract changes propagate in the same pass.** When a locked field/formula changes, update
   every doc that references it that turn, and end the turn naming what it touched.
-- **Update `STATUS.md` every substantive round** — it's the review handoff for Codex.
-- End substantive turns with a short "for Codex" block (what changed, files, what to scrutinize, open Qs).
+- **`STATUS.md` is the handoff file** — it holds the loop, where we are, "Claude proposes next,"
+  and a "Codex review" section Codex appends to. Update it every substantive round; never edit the
+  "Codex review" section (that's Codex's). When the user says "read STATUS," respond to Codex's notes.
 - Flag prerequisites/risks proactively.
 
 ## Source-of-truth map
