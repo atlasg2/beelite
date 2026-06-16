@@ -104,12 +104,14 @@ model ProjectFinish {
   unit          String
   category      String
   inScope       Boolean @default(true)
-  materialCost  Float
+  materialCost  Float   @default(0) // rates often unknown at extraction; Sheet flags $0
   installAmount Float?
-  installMode   String
-  wastePct      Float
+  installMode   String  @default("pending")
+  wastePct      Float   @default(0)
   cartonSize    Float?
   furnishType   String  @default("furnish_and_sub")
+
+  @@unique([projectId, code]) // Sheet assumes unique finish codes per project
 }
 
 model ProjectScopeItem {
@@ -130,8 +132,8 @@ model TakeoffLine {
   finishCode String
   qty        Float
   unit       String
-  source     String // manual | ai
-  status     String // draft | needs_review | approved | excluded
+  source     String  @default("manual") // manual | ai
+  status     String  @default("draft") // draft | needs_review | approved | excluded
 }
 
 model EstimateSettings {

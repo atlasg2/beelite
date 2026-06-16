@@ -89,6 +89,9 @@ The Sheet is split into **hidden app-owned tabs** (app writes, humans never touc
 | `App_Rates` | code, materialCost, installMode, installAmount, wastePct, cartonSize, furnishType |
 | `App_Settings` | projectName, gc, location, bidDate, pricingMode, pct, subMarkupPct, taxPct, taxMode, freight, notes |
 
+> `App_Settings` is a **merge** of two DB models, not one: `projectName/gc/location/bidDate/notes`
+> come from `Project`; `pricingMode/pct/subMarkupPct/taxPct/taxMode/freight` come from `EstimateSettings`.
+
 ### Visible tabs — formulas only; humans may edit override columns
 | Tab | Pulls from | Computes / holds |
 |---|---|---|
@@ -116,6 +119,9 @@ On each step: `spreadsheets.values.batchUpdate` writes the `App_*` ranges. No re
 
 ## 4. Database schema
 
+**Source of truth: [`../prisma/schema.prisma`](../prisma/schema.prisma).** The block below is a
+readable summary — if they ever disagree, the `.prisma` file wins.
+
 The DB stores **inputs and review state** — *not* computed bid totals (those live in the Sheet).
 Two tiers (company / project) + the **`Extraction` correction log** that powers training later.
 
@@ -124,7 +130,6 @@ Two tiers (company / project) + the **`Extraction` correction log** that powers 
 model Company {
   id        String @id @default(cuid())
   name      String
-  users     User[]
   finishes  FinishLibraryItem[]
   rates     RateCatalogEntry[]
   scopeTpl  ScopeTemplateItem[]
@@ -153,7 +158,6 @@ model RateCatalogEntry {
   wastePct      Float
   cartonSize    Float?
   furnishType   String @default("furnish_and_sub")  // furnish_and_sub | turnkey_sub
-  adhesiveRule  String?
 }
 
 model ScopeTemplateItem {
