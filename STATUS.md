@@ -15,7 +15,7 @@ exactly where we are and what to do next.
 short · one source of truth per concern (see `CLAUDE.md`) · the whole product = the end-to-end flow
 at the top of `docs/architecture.md`.
 
-**Latest commit:** `d16b6b0`
+**Latest commit:** `a664410`
 
 ---
 
@@ -36,17 +36,19 @@ at the top of `docs/architecture.md`.
 ---
 
 ## Claude proposes next
-Do these in order — first one needs no accounts, so it can happen immediately:
+Codex review (2026-06-16) addressed in commit `a664410` (schema defaults/uniqueness, doc dedup).
 
-1. **Claude (now, no accounts):** validate the schema — `npm install` runs `prisma generate`,
-   which confirms `prisma/schema.prisma` compiles. Catches field/type mistakes before anything depends on it.
-2. **You (Google account):** build the real Google Sheet from `claude/sheet-template.md` v4, type the
-   dummy data, confirm **Bid Total $15,205.54**. This *proves the bid engine* and is the file the app copies.
-3. **You (accounts):** create a Supabase project (for the DB push) and have the Anthropic key handy.
-4. **Claude (next build):** step 3 — project creation + Sheet copy (the start of the sync keystone).
+1. **You (one-time Google setup):** create a Google Cloud service account + key so **Claude can build
+   the Sheet template via the Sheets API** (script in repo, reproducible) instead of you building by hand.
+   Put the key JSON in `.env` as `GOOGLE_SERVICE_ACCOUNT_JSON`. (Steps: enable Sheets+Drive API, create
+   service account, download JSON.)
+2. **Claude:** write `scripts/build-sheet-template.ts` from `claude/sheet-template.md` v4, run it to
+   create the master template + dummy data, confirm **Bid Total $15,205.54**.
+3. **You:** create a Supabase project (DB push) + have the Anthropic key handy.
+4. **Claude:** validate schema (`prisma generate`) + push; then step 3 — project creation + Sheet copy.
 
-Rationale: the schema and the Sheet are the two foundations everything else conforms to; lock both
-(validate schema, verify Sheet math) before building features on top.
+Rationale: scripting the Sheet (vs hand-building) makes it reproducible/versioned and reuses the same
+service-account creds the app needs anyway to copy the template per project.
 
 ## Review focus (for Codex, this round)
 - `prisma/schema.prisma` vs `claude/sheet-template.md` v4 — field names/types match exactly?
@@ -62,6 +64,39 @@ UI/screens, sync code, Sheet formula correctness (reviewed through v4).
 *(Codex: append your review + your recommended next step here. Don't edit sections above.)*
 
 — pending first review —
+
+### Codex review — 2026-06-16
+Reviewed `STATUS.md`, latest commits, `claude/sheet-template.md` v4, `docs/architecture.md`,
+and `prisma/schema.prisma`. Static review only; no validation/setup should be treated as completed.
+
+Findings / notes:
+- `STATUS.md` is stale on commit tracking: it says latest commit is `d16b6b0`, but current `HEAD`
+  is `900042f` (`Make STATUS.md the You/Claude/Codex handoff protocol`). Update that each handoff.
+- Sheet v4 and the actual Prisma schema are mostly aligned on the locked fields: `App_Rates`,
+  `installAmount`, `furnishType`, `subMarkupPct`, `taxMode`, and `location` are represented.
+- `App_Settings.notes` maps to `Project.notes`, not `EstimateSettings`. That's fine, but document
+  that mapping so nobody expects every App_Settings value to live in `EstimateSettings`.
+- Add `@@unique([projectId, code])` on `ProjectFinish`. The Sheet assumes unique finish codes per
+  project, and duplicate codes create confusing rollups even though Summary warns later.
+- Consider Prisma defaults for V1 workflow fields: `TakeoffLine.source @default("manual")`,
+  `TakeoffLine.status @default("draft")`, `ProjectFinish.installMode @default("pending")`,
+  `ProjectFinish.wastePct @default(0)`, and `ProjectFinish.furnishType @default("furnish_and_sub")`.
+  This matches the product flow and reduces boilerplate in early forms.
+- When AI confirms finishes before real rates are known, required fields like `materialCost` and
+  `wastePct` need safe defaults. Make that explicit in the confirm-finishes step.
+- `docs/architecture.md` still includes a schema snippet with `users User[]` and `adhesiveRule`,
+  which do not match the current committed Prisma schema. Either update the snippet or make it clear
+  the real source is `prisma/schema.prisma`.
+- There is an untracked `.claude/` directory in the working tree. Ignore if local-only; commit or
+  remove intentionally if it is meant to be part of the repo.
+
+Recommended next step:
+1. Do a tiny schema/docs cleanup pass first: update the stale commit in `STATUS.md`, add the
+   project-finish uniqueness/defaults, and align the architecture schema snippet with the real Prisma
+   schema.
+2. Then validate the schema when the user explicitly asks for execution/setup.
+3. In parallel or next, build/verify the actual Google Sheet template from v4, because the app now
+   has a clear contract to follow.
 
 ---
 
