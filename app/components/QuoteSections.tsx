@@ -22,6 +22,27 @@ type Errors = { name?: string; email?: string; service?: string };
 function QuoteFields() {
   const [errors, setErrors] = useState<Errors>({});
   const [done, setDone] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [drag, setDrag] = useState(false);
+
+  function addFiles(list: FileList | null) {
+    const pdfs = Array.from(list || []).filter(
+      (f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")
+    );
+    if (pdfs.length) setFiles((prev) => [...prev, ...pdfs]);
+  }
+  function onFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    addFiles(e.target.files);
+    e.target.value = "";
+  }
+  function onDrop(e: React.DragEvent<HTMLLabelElement>) {
+    e.preventDefault();
+    setDrag(false);
+    addFiles(e.dataTransfer.files);
+  }
+  function removeFile(i: number) {
+    setFiles((prev) => prev.filter((_, idx) => idx !== i));
+  }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -45,7 +66,14 @@ function QuoteFields() {
         <p className="qdone__body">
           Thanks — we'll get back to you within one business day.
         </p>
-        <button type="button" className="btn btn--ghost btn--service" onClick={() => setDone(false)}>
+        <button
+          type="button"
+          className="btn btn--ghost btn--service"
+          onClick={() => {
+            setDone(false);
+            setFiles([]);
+          }}
+        >
           Send another
         </button>
       </div>
@@ -121,6 +149,59 @@ function QuoteFields() {
         <span className="qfield__label">Project details</span>
         <textarea name="details" rows={4} className="qfield__input qfield__textarea" />
       </label>
+
+      <div className="qfield">
+        <span className="qfield__label">
+          Attach plans or specs <span className="qfield__hint">(PDF · optional)</span>
+        </span>
+        <label
+          className={`qupload${drag ? " is-drag" : ""}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDrag(true);
+          }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={onDrop}
+        >
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            multiple
+            className="qupload__input"
+            onChange={onFiles}
+          />
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 16V5m0 0l-4 4m4-4l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+          <span className="qupload__text">
+            {files.length
+              ? `${files.length} PDF${files.length > 1 ? "s" : ""} attached`
+              : "Drag & drop, or browse"}
+          </span>
+        </label>
+        {files.length > 0 && (
+          <ul className="qupload__list">
+            {files.map((f, i) => (
+              <li className="qupload__item" key={`${f.name}-${i}`}>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M6 3h8l4 4v14a0 0 0 0 1 0 0H6a0 0 0 0 1 0 0V3z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                  <path d="M14 3v4h4" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+                </svg>
+                <span className="qupload__name">{f.name}</span>
+                <button
+                  type="button"
+                  className="qupload__remove"
+                  onClick={() => removeFile(i)}
+                  aria-label={`Remove ${f.name}`}
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <button type="submit" className="btn btn--solid btn--service">Request a quote</button>
       <p className="qform__note">We reply within one business day. No obligation.</p>
@@ -218,18 +299,20 @@ export function QuoteCentered({
   glow,
   decor,
   gridColor,
+  theme,
   anchored = true,
 }: {
   tag?: string;
   glow?: string;
   decor?: string;
   gridColor?: string;
+  theme?: string;
   anchored?: boolean;
 }) {
   return (
     <section
       id={anchored ? "contact" : undefined}
-      className={`quote quote--center${glow ? ` quote--${glow}` : ""}${decor ? ` quote--${decor}` : ""}${gridColor ? ` quote--grid-${gridColor}` : ""}`}
+      className={`quote quote--center${glow ? ` quote--${glow}` : ""}${decor ? ` quote--${decor}` : ""}${gridColor ? ` quote--grid-${gridColor}` : ""}${theme ? ` quote--${theme}` : ""}`}
       aria-label="Request a quote"
     >
       {tag && <span className="cmp-tag">{tag}</span>}

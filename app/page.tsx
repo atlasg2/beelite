@@ -1,7 +1,8 @@
 import Image from "next/image";
 import HeroSlideshow from "./components/HeroSlideshow";
-import { NowServices, ParallaxServices } from "./components/ServiceSections";
-import { Capabilities, WhyBand } from "./components/Capabilities";
+import { ParallaxServices } from "./components/ServiceSections";
+import { Capabilities } from "./components/Capabilities";
+import { AdvImageTop } from "./components/AdvantageLayouts";
 import { AboutOverlay } from "./components/AboutLayouts";
 import { QuoteCentered } from "./components/QuoteSections";
 import Footer from "./components/Footer";
@@ -57,17 +58,15 @@ export default function Page() {
           <HeroSlideshow />
         </section>
 
-        <NowServices items={CONTENT_B} anchored />
+        <AdvImageTop scheme="black haccent" />
 
-        <ParallaxServices items={PARALLAX_MIX} />
+        <ParallaxServices items={PARALLAX_MIX} anchored />
 
-        <Capabilities />
-
-        <WhyBand />
+        <Capabilities variant="light" />
 
         <AboutOverlay />
 
-        <QuoteCentered decor="blueprint" />
+        <QuoteCentered decor="blueprint" theme="lightcard" />
       </main>
 
       <Footer />

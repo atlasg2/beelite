@@ -41,11 +41,21 @@ const CHAIN = [
       </svg>
     ),
   },
+  {
+    title: "White-Label Installs",
+    body: "Your brand, our crews — we install under your own name.",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 4h7l9 9-7 7-9-9V4z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+        <circle cx="8.5" cy="8.5" r="1.4" fill="currentColor" />
+      </svg>
+    ),
+  },
 ];
 
-export function Capabilities() {
+export function Capabilities({ variant }: { variant?: string }) {
   return (
-    <section className="caps" aria-label="Our services">
+    <section className={`caps${variant ? ` caps--${variant}` : ""}`} aria-label="Our services">
       <Reveal className="caps__head reveal">
         <p className="section-eyebrow reveal-item">Full-service</p>
         <h2 className="caps__title reveal-item">
@@ -62,27 +72,10 @@ export function Capabilities() {
           <div className="capnode reveal-item" key={c.title}>
             <span className="capnode__dot">{c.icon}</span>
             <h3 className="capnode__title">{c.title}</h3>
-            <p className="capnode__body">{c.body}</p>
           </div>
         ))}
       </Reveal>
 
-      <Reveal className="caps__wl">
-        <span className="caps__wl-icon">
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M4 4h7l9 9-7 7-9-9V4z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
-            <circle cx="8.5" cy="8.5" r="1.4" fill="currentColor" />
-          </svg>
-        </span>
-        <div className="caps__wl-text">
-          <p className="caps__wl-eyebrow">Also offered</p>
-          <h3 className="caps__wl-title">White-Label Installs</h3>
-          <p className="caps__wl-body">
-            Your brand, our crews — dealers and manufacturers run our teams as their own.
-          </p>
-        </div>
-        <a href="#contact" className="btn btn--solid btn--service">Talk to us</a>
-      </Reveal>
     </section>
   );
 }
