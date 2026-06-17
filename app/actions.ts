@@ -16,6 +16,35 @@ const str = (v: FormDataEntryValue | null) => {
   return s.length ? s : null;
 };
 
+type RateFields = {
+  materialUnitCost: number;
+  installRate: number;
+  wastePct: number;
+  cartonSize: number | null;
+  materialSource: string;
+};
+
+// Single source of truth for rate hygiene (Codex lib #2): never negative; owner-furnished material → 0.
+function normalizeRate<T extends RateFields>(r: T): T {
+  const owner = r.materialSource === "owner_furnishes";
+  const nn = (n: number) => Math.max(0, Number(n) || 0);
+  return {
+    ...r,
+    materialSource: owner ? "owner_furnishes" : "elite_furnishes",
+    materialUnitCost: owner ? 0 : nn(r.materialUnitCost),
+    installRate: nn(r.installRate),
+    wastePct: nn(r.wastePct),
+    cartonSize: r.cartonSize == null ? null : nn(r.cartonSize),
+  };
+}
+
+// Effective needs-rate predicate — must match lib/estimate.ts (Codex lib #1). Only complete rates publish.
+function rateIsComplete(r: RateFields): boolean {
+  return r.materialSource === "owner_furnishes"
+    ? r.installRate > 0
+    : r.materialUnitCost > 0 && r.installRate > 0;
+}
+
 export async function createProject(formData: FormData) {
   const name = str(formData.get("name"));
   if (!name) return; // name is required; the form enforces it too
@@ -188,19 +217,13 @@ type RateInput = {
 
 export async function saveRates(projectId: string, rates: RateInput[], toLibrary = false) {
   await Promise.all(
-    rates.map((r) =>
-      db.projectFinish.update({
+    rates.map((r) => {
+      const { materialUnitCost, installRate, wastePct, cartonSize, materialSource } = normalizeRate(r);
+      return db.projectFinish.update({
         where: { id: r.id },
-        data: {
-          materialUnitCost: r.materialUnitCost,
-          installRate: r.installRate,
-          wastePct: r.wastePct,
-          cartonSize: r.cartonSize,
-          materialSource: r.materialSource,
-          rateStatus: "manual",
-        },
-      })
-    )
+        data: { materialUnitCost, installRate, wastePct, cartonSize, materialSource, rateStatus: "manual" },
+      });
+    })
   );
   if (toLibrary) await pushBidRatesToLibrary(projectId); // "learn" — copy these into the company standard rates
   revalidatePath(`/projects/${projectId}/estimate`);
@@ -216,7 +239,8 @@ async function pushBidRatesToLibrary(projectId: string) {
   });
   if (!project) return;
   for (const f of project.finishes) {
-    if (f.installRate <= 0 && f.materialUnitCost <= 0) continue; // skip unpriced finishes
+    const rate = normalizeRate(f);
+    if (!rateIsComplete(rate)) continue; // only publish finishes with a usable effective rate (Codex lib #1)
     const item = await db.finishLibraryItem.upsert({
       where: { companyId_code: { companyId: project.companyId, code: f.code } },
       create: { companyId: project.companyId, code: f.code, type: f.type, description: f.description, unit: f.unit, category: f.category },
@@ -224,8 +248,8 @@ async function pushBidRatesToLibrary(projectId: string) {
     });
     await db.rateCatalogEntry.upsert({
       where: { finishId: item.id },
-      create: { companyId: project.companyId, finishId: item.id, materialUnitCost: f.materialUnitCost, installRate: f.installRate, wastePct: f.wastePct, cartonSize: f.cartonSize, materialSource: f.materialSource },
-      update: { materialUnitCost: f.materialUnitCost, installRate: f.installRate, wastePct: f.wastePct, cartonSize: f.cartonSize, materialSource: f.materialSource },
+      create: { companyId: project.companyId, finishId: item.id, materialUnitCost: rate.materialUnitCost, installRate: rate.installRate, wastePct: rate.wastePct, cartonSize: rate.cartonSize, materialSource: rate.materialSource },
+      update: { materialUnitCost: rate.materialUnitCost, installRate: rate.installRate, wastePct: rate.wastePct, cartonSize: rate.cartonSize, materialSource: rate.materialSource },
     });
   }
 }
@@ -243,28 +267,36 @@ type LibraryRow = {
   materialSource: string;
 };
 
-// Direct edit of the standard-rates library from /library.
-export async function saveLibrary(rows: LibraryRow[]) {
+// Direct edit of the standard-rates library from /library. Validates, then delete+upserts atomically.
+export async function saveLibrary(rows: LibraryRow[]): Promise<{ error: string } | void> {
   const company = await getOrCreateDefaultCompany();
-  const codes = rows.map((r) => r.code.trim()).filter(Boolean);
-  // drop rows the user removed (RateCatalogEntry cascades with the finish item)
-  await db.finishLibraryItem.deleteMany({
-    where: { companyId: company.id, code: { notIn: codes.length ? codes : ["__none__"] } },
+
+  // Normalize + validate up front (Codex lib #2, #3): trim codes, drop blanks, reject duplicate codes.
+  const clean = rows
+    .map((r) => ({ ...normalizeRate(r), code: r.code.trim(), type: r.type.trim(), description: r.description.trim(), unit: r.unit, category: r.category }))
+    .filter((r) => r.code);
+  const dupes = clean.map((r) => r.code).filter((c, i, a) => a.indexOf(c) !== i);
+  if (dupes.length) return { error: `Duplicate finish code(s): ${[...new Set(dupes)].join(", ")}` };
+
+  const codes = clean.map((r) => r.code);
+  // Atomic full-replace so a mid-write failure can't leave the library half-deleted (Codex lib #3).
+  await db.$transaction(async (tx) => {
+    await tx.finishLibraryItem.deleteMany({
+      where: { companyId: company.id, code: { notIn: codes.length ? codes : ["__none__"] } },
+    });
+    for (const r of clean) {
+      const item = await tx.finishLibraryItem.upsert({
+        where: { companyId_code: { companyId: company.id, code: r.code } },
+        create: { companyId: company.id, code: r.code, type: r.type, description: r.description, unit: r.unit, category: r.category },
+        update: { type: r.type, description: r.description, unit: r.unit, category: r.category },
+      });
+      await tx.rateCatalogEntry.upsert({
+        where: { finishId: item.id },
+        create: { companyId: company.id, finishId: item.id, materialUnitCost: r.materialUnitCost, installRate: r.installRate, wastePct: r.wastePct, cartonSize: r.cartonSize, materialSource: r.materialSource },
+        update: { materialUnitCost: r.materialUnitCost, installRate: r.installRate, wastePct: r.wastePct, cartonSize: r.cartonSize, materialSource: r.materialSource },
+      });
+    }
   });
-  for (const r of rows) {
-    const code = r.code.trim();
-    if (!code) continue;
-    const item = await db.finishLibraryItem.upsert({
-      where: { companyId_code: { companyId: company.id, code } },
-      create: { companyId: company.id, code, type: r.type, description: r.description, unit: r.unit, category: r.category },
-      update: { type: r.type, description: r.description, unit: r.unit, category: r.category },
-    });
-    await db.rateCatalogEntry.upsert({
-      where: { finishId: item.id },
-      create: { companyId: company.id, finishId: item.id, materialUnitCost: r.materialUnitCost, installRate: r.installRate, wastePct: r.wastePct, cartonSize: r.cartonSize, materialSource: r.materialSource },
-      update: { materialUnitCost: r.materialUnitCost, installRate: r.installRate, wastePct: r.wastePct, cartonSize: r.cartonSize, materialSource: r.materialSource },
-    });
-  }
   revalidatePath("/library");
   redirect("/library");
 }

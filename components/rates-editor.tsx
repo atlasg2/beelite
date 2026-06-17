@@ -52,20 +52,20 @@ export function RatesEditor({ projectId, initial }: { projectId: string; initial
                     <div style={{ color: "var(--muted)", fontSize: 12 }}>{r.type}</div>
                   </td>
                   <td style={cell}>
-                    <input style={{ ...num, opacity: owner ? 0.4 : 1 }} type="number" step="0.01" disabled={owner}
+                    <input style={{ ...num, opacity: owner ? 0.4 : 1 }} type="number" step="0.01" min="0" disabled={owner}
                       value={owner ? "" : r.materialUnitCost}
                       onChange={(e) => set(i, { materialUnitCost: parseFloat(e.target.value) || 0 })} />
                   </td>
                   <td style={cell}>
-                    <input style={num} type="number" step="0.01" value={r.installRate}
+                    <input style={num} type="number" step="0.01" min="0" value={r.installRate}
                       onChange={(e) => set(i, { installRate: parseFloat(e.target.value) || 0 })} />
                   </td>
                   <td style={cell}>
-                    <input style={num} type="number" step="0.01" value={r.wastePct}
+                    <input style={num} type="number" step="0.01" min="0" value={r.wastePct}
                       onChange={(e) => set(i, { wastePct: parseFloat(e.target.value) || 0 })} />
                   </td>
                   <td style={cell}>
-                    <input style={num} type="number" step="1" value={r.cartonSize ?? ""}
+                    <input style={num} type="number" step="1" min="0" value={r.cartonSize ?? ""}
                       onChange={(e) => set(i, { cartonSize: e.target.value === "" ? null : parseFloat(e.target.value) })} />
                   </td>
                   <td style={cell}>

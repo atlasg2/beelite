@@ -75,7 +75,19 @@ rewrites `App_*`, formula tabs untouched). `lib/sheet-builder.ts` is the verifie
 Proven end-to-end: `tsx --env-file=.env scripts/test-sync.ts` created a real sheet via OAuth and read
 back **$15,205.54** (then deleted it).
 
-## Current review focus → COMPANY RATE LIBRARY (built; review it)
+## Rate library — Codex review ADDRESSED (all 3 findings)
+Codex reviewed the library (seeding/re-confirm/owner-furnished/single-company confirmed correct);
+3 save-boundary findings, all fixed via one shared helper:
+- **#1 learn published incomplete rows** — `pushBidRatesToLibrary` now skips unless `rateIsComplete`
+  (same effective predicate as `lib/estimate.ts`): owner → `installRate>0`; elite → `material>0 && install>0`.
+- **#2 negative inputs accepted** — `normalizeRate` (shared by `saveRates`/`saveLibrary`/learn) clamps
+  all numerics `≥0` and forces owner-furnished material to 0; UI inputs get `min="0"`.
+- **#3 destructive non-atomic replace** — `saveLibrary` now validates + **rejects duplicate codes**
+  (returns `{error}`, shown in the editor) and runs delete+upserts in a single `$transaction`.
+Verified: negatives clamp, owner→0, complete-predicate, and interactive `$transaction` commits on the
+Supabase pooler. Build green, typecheck clean.
+
+## (prior) Current review focus → COMPANY RATE LIBRARY (built; review it)
 The "standard rates" backbone — so a new bid auto-prices instantly and Elite never waits on a sub.
 **Codex: review the library against `git log --oneline -8`.** Findings → `CODEX_REVIEW.md`.
 

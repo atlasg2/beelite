@@ -1,64 +1,52 @@
-# Codex Review — v5 Implementation
+# Codex Review — Company Rate Library
 
 Reviewed `STATUS.md` against latest committed code:
-`5583d84`, `684692f`, `0f0f7d5`, `4ce25ba`, `84273ae`, `2999022`, `caf684c`, `a465d53`.
+`d2d5c82`, `fba67a7`, `5583d84`, `684692f`, `0f0f7d5`, `4ce25ba`, `84273ae`, `2999022`.
 Static review only; no build/tests run.
 
 ## Findings
 
-1. **Existing synced bids can keep old Sheet formulas while receiving v5 inputs.**
-   `syncBidToSheet` reuses any saved `project.sheetId` and calls `updateBidData`
-   (`app/actions.ts:297-302`). `updateBidData` only clears/rewrites `App_*` values and explicitly
-   leaves formulas/formats untouched (`lib/sheet-builder.ts:327-339`). The verified v5 test only
-   covers fresh Sheet creation (`scripts/test-sync.ts:45-54`). Since v5 changed the hidden input
-   shape and visible formulas, any bid that already has a pre-v5 Sheet id can silently sync v5 data
-   into a v4 workbook and produce wrong bid totals. Add a Sheet engine version check/sentinel and
-   recreate or rebuild the workbook when the saved sheet is not v5. For the current demo DB, clearing
-   old `Project.sheetId` values is the quick one-time fix.
+1. **"Learn to library" can save incomplete `needs_rate` rows as standard rates.**
+   `pushBidRatesToLibrary` skips only rows where both `installRate <= 0` and `materialUnitCost <= 0`
+   (`app/actions.ts:218-220`). That means it will learn partially priced rows, for example
+   Elite-furnished material with `materialUnitCost = 0` but `installRate > 0`, or owner-furnished rows
+   with `installRate <= 0` if a stale/nonzero material cost is still present. Those rows become company
+   standards and later seed bids as `rateStatus: "seeded"` even though the effective rate is still
+   missing. Use the same effective needs-rate predicate as the bid calculator before publishing to the
+   library: skip unless `(owner_furnishes && installRate > 0)` or
+   `(elite_furnishes && materialUnitCost > 0 && installRate > 0)`.
 
-2. **Invalid profit percentages are accepted, and invalid cases diverge between app and Sheet.**
-   `saveSettings` accepts any parsed number (`app/actions.ts:238-249`), and the estimate inputs have
-   no `min`/`max` guard (`app/projects/[id]/estimate/page.tsx:147-151`). The app clamps negative
-   markup/margin back to cost and only warns for margin `>= 1` (`lib/estimate.ts:56-60`,
-   `lib/estimate.ts:131-134`). The Sheet formulas only blank out margin `>= 1`, and negative values
-   flow directly into sell formulas (`lib/sheet-builder.ts:94-95`); the Summary checks do not flag
-   invalid pricing settings (`lib/sheet-builder.ts:140-146`). Example: margin `1.0` makes the app show
-   sell-at-cost with a warning, but the Sheet blanks `O/P`, causing much lower sell/profit. Enforce
-   `pct >= 0` always and `pct < 1` in margin mode in the server action, mirror it in the UI, and add
-   a Sheet-facing warning/check so bad settings cannot produce a bid number.
+2. **Library/rate saves still accept negative pricing inputs.**
+   The client inputs for material, install, waste, and carton have no `min` guards
+   (`components/library-editor.tsx:73-76`, `components/rates-editor.tsx:55-69`), and the server writes
+   those numbers directly into `ProjectFinish` and `RateCatalogEntry` (`app/actions.ts:195-198`,
+   `app/actions.ts:264-265`). A negative material cost, install rate, waste, or carton can be learned
+   into the standard library and then seed future bids with negative cost/sell math. Clamp or reject
+   these fields server-side, and mirror with UI `min="0"`; normalize owner-furnished material cost to
+   `0` before saving.
 
-3. **Re-confirming finishes breaks the intended rate snapshot/manual override semantics.**
-   The UI explicitly allows re-confirming a previously confirmed extraction
-   (`app/projects/[id]/finishes/page.tsx:70-72`, `components/finish-review.tsx:74-79`). The action
-   then deletes every `ProjectFinish`, pulls the current company library again, and recreates rows
-   (`app/actions.ts:139-170`). That means a later correction pass can wipe manual per-bid rates and
-   retroactively pick up library edits, which conflicts with the contract's "snapshot, not live" rule.
-   Merge by code instead: preserve existing per-bid rate fields for unchanged codes, seed only new
-   codes from the library, and make any "reset rates from library" behavior explicit.
-
-4. **Formula tabs only calculate the first 60 in-scope finishes.**
-   `N = 60` drives the fill-down formulas for `Rates!B:Q` and `Estimate!B:S`
-   (`lib/sheet-builder.ts:8`, `lib/sheet-builder.ts:233-236`). `Rates!A2` and `Estimate!A2` can spill
-   more than 60 codes, but rows after 61 will not have cost/sell/rate-status formulas, so a larger
-   finish schedule can be partially visible while undercounted in the bid. Either fill a much larger
-   bounded range, generate rows from the actual finish count, or use array formulas for the computed
-   columns.
+3. **`saveLibrary` is a destructive full replace without a transaction or validation pass.**
+   The action deletes everything not in the submitted code list before it upserts rows
+   (`app/actions.ts:247-267`). If a later upsert fails, the library can be left partially deleted.
+   Also, rows with duplicate codes silently last-write-win, while all-blank submitted rows produce
+   `codes = []` and delete all existing library rows via the `["__none__"]` sentinel
+   (`app/actions.ts:249-253`). The empty-library delete behavior is acceptable if intentional, but it
+   should be explicit. Validate/normalize all rows first, reject duplicate nonblank codes, then run
+   delete+upserts in a single `$transaction`.
 
 ## Checks That Look Correct
 
-- The normal valid-input cost -> sell -> profit math in `lib/estimate.ts` matches the v5 contract:
-  order quantity uses waste/carton, install uses approved quantity, owner-furnished material costs
-  and sells at zero, freight/tax stay outside profit.
-- `Estimate!S` uses the effective Sheet rate columns (`J/K` plus material source `E`), so Sheet-side
-  rate overrides clear the Sheet's `needs_rate` warning as intended.
-- `confirmFinishes` does use a company-scoped exact code match and does not auto-price from
-  type/category fallback suggestions.
-- `formattingRequests()` ranges line up with the current v5 layout; I do not see an off-by-one in the
-  Summary money/percent block, Estimate `J:R` money block, bid block `V1:V16`, or Rates override
-  shading.
+- Exact company-scoped code matching is implemented for seeding (`confirmFinishes` reads
+  `companyId` and maps `FinishLibraryItem.code`), and no type/category fallback is auto-applied.
+- The re-confirm behavior still preserves existing per-bid rates for unchanged finish codes, so
+  library edits do not retroactively rewrite active bids.
+- Owner-furnished rows with a valid install rate and zero material cost are supported by the current
+  data model.
+- The single-company helper (`getOrCreateDefaultCompany`) is consistent with the current v1 scope.
 
 ## Recommended Next Step
 
-Fix the re-sync/versioning path first, then add server-side numeric validation for pricing settings
-and rates. After that, run two regressions: fresh v5 Sheet create still returns `$15,205.54`, and an
-old/pre-v5 `sheetId` either rebuilds or is replaced instead of being updated in place.
+Tighten the save boundary: add one shared rate-normalization/validation helper, use it in
+`saveRates`, `saveLibrary`, and `pushBidRatesToLibrary`, then wrap `saveLibrary`'s full-replace logic
+in a transaction. After that, smoke-test three paths: direct library edit, learn-from-rates with an
+owner-furnished finish, and confirm-finishes seeding from the learned standard.

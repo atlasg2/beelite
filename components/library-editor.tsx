@@ -27,7 +27,14 @@ const num: React.CSSProperties = { ...txt, width: 76 };
 
 export function LibraryEditor({ initial }: { initial: Row[] }) {
   const [rows, setRows] = useState<Row[]>(initial);
+  const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const save = () =>
+    start(async () => {
+      setErr(null);
+      const res = await saveLibrary(rows);
+      if (res?.error) setErr(res.error);
+    });
   const set = (i: number, patch: Partial<Row>) =>
     setRows((r) => r.map((row, j) => (j === i ? { ...row, ...patch } : row)));
   const del = (i: number) => setRows((r) => r.filter((_, j) => j !== i));
@@ -70,10 +77,10 @@ export function LibraryEditor({ initial }: { initial: Row[] }) {
                       {["floor", "base", "transition", "wall", "other"].map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </td>
-                  <td style={cell}><input style={{ ...num, opacity: owner ? 0.4 : 1 }} type="number" step="0.01" disabled={owner} value={owner ? "" : r.materialUnitCost} onChange={(e) => set(i, { materialUnitCost: parseFloat(e.target.value) || 0 })} /></td>
-                  <td style={cell}><input style={num} type="number" step="0.01" value={r.installRate} onChange={(e) => set(i, { installRate: parseFloat(e.target.value) || 0 })} /></td>
-                  <td style={cell}><input style={num} type="number" step="0.01" value={r.wastePct} onChange={(e) => set(i, { wastePct: parseFloat(e.target.value) || 0 })} /></td>
-                  <td style={cell}><input style={{ ...num, width: 60 }} type="number" step="1" value={r.cartonSize ?? ""} onChange={(e) => set(i, { cartonSize: e.target.value === "" ? null : parseFloat(e.target.value) })} /></td>
+                  <td style={cell}><input style={{ ...num, opacity: owner ? 0.4 : 1 }} type="number" step="0.01" min="0" disabled={owner} value={owner ? "" : r.materialUnitCost} onChange={(e) => set(i, { materialUnitCost: parseFloat(e.target.value) || 0 })} /></td>
+                  <td style={cell}><input style={num} type="number" step="0.01" min="0" value={r.installRate} onChange={(e) => set(i, { installRate: parseFloat(e.target.value) || 0 })} /></td>
+                  <td style={cell}><input style={num} type="number" step="0.01" min="0" value={r.wastePct} onChange={(e) => set(i, { wastePct: parseFloat(e.target.value) || 0 })} /></td>
+                  <td style={cell}><input style={{ ...num, width: 60 }} type="number" step="1" min="0" value={r.cartonSize ?? ""} onChange={(e) => set(i, { cartonSize: e.target.value === "" ? null : parseFloat(e.target.value) })} /></td>
                   <td style={cell}>
                     <select style={{ ...num, width: 130 }} value={r.materialSource} onChange={(e) => set(i, { materialSource: e.target.value })}>
                       <option value="elite_furnishes">Elite furnishes</option>
@@ -91,9 +98,10 @@ export function LibraryEditor({ initial }: { initial: Row[] }) {
         </table>
       </div>
 
+      {err && <p className="hint" style={{ color: "#b45309", marginTop: 12 }}>⚠ {err}</p>}
       <div className="form-actions" style={{ marginTop: 18, gap: 10 }}>
         <button className="btn" onClick={add}>+ Add finish</button>
-        <button className="btn btn-primary" disabled={pending} onClick={() => start(() => saveLibrary(rows))}>
+        <button className="btn btn-primary" disabled={pending} onClick={save}>
           {pending ? "Saving…" : "Save standard rates"}
         </button>
         <span className="hint" style={{ margin: 0, padding: 0, border: 0 }}>
