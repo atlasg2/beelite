@@ -331,6 +331,25 @@ export async function replaceTakeoff(projectId: string, rows: TakeoffInput[]) {
   redirect(`/projects/${projectId}/estimate`);
 }
 
+type ScopeInput = { label: string; mode: string; allowance: number | null };
+
+export async function replaceScope(projectId: string, rows: ScopeInput[]) {
+  await db.projectScopeItem.deleteMany({ where: { projectId } });
+  const clean = rows.filter((r) => r.label.trim());
+  if (clean.length) {
+    await db.projectScopeItem.createMany({
+      data: clean.map((r) => ({
+        projectId,
+        label: r.label.trim(),
+        mode: r.mode,
+        allowance: r.mode === "included" && r.allowance != null ? Math.max(0, r.allowance) : null,
+      })),
+    });
+  }
+  revalidatePath(`/projects/${projectId}/estimate`);
+  redirect(`/projects/${projectId}/estimate`);
+}
+
 export async function saveSettings(projectId: string, formData: FormData) {
   const num = (k: string, d = 0) => {
     const v = parseFloat(String(formData.get(k) ?? ""));

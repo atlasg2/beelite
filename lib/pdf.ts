@@ -20,15 +20,21 @@ export function scorePage(pageNumber: number, text: string): PageScan {
   const csiHit = /\b09\s?06\s?00\b/.test(U) || /SCHEDULE\s+FOR\s+FINISHES/.test(U);
   const codeCount = (text.match(FINISH_CODE) || []).length;
 
-  // negative signals — pages that have finish-ish words but aren't the schedule
+  // negative signals — pages that have finish-ish words but aren't the schedule.
+  // Includes "GENERAL NOTES" et al: notes/spec front-matter that cite finishes/CSI in prose but
+  // aren't a schedule table (this is what false-flagged the DC gym's G-02 pages).
   const negative =
-    /COVER\s+SHEET|SHEET\s+INDEX|DRAWING\s+INDEX|TABLE\s+OF\s+CONTENTS|TITLE\s+SHEET|BID\s+FORM|PROPOSAL\s+FORM|INSTRUCTIONS?\s+TO\s+BIDDERS|PREVAILING\s+WAGE|PAYROLL/.test(U);
+    /COVER\s+SHEET|SHEET\s+INDEX|DRAWING\s+INDEX|TABLE\s+OF\s+CONTENTS|TITLE\s+SHEET|BID\s+FORM|PROPOSAL\s+FORM|INSTRUCTIONS?\s+TO\s+BIDDERS|PREVAILING\s+WAGE|PAYROLL|GENERAL\s+NOTES|GENERAL\s+CONDITIONS|GENERAL\s+REQUIREMENTS|GENERAL\s+INFORMATION|CODE\s+ANALYSIS|LIFE\s+SAFETY|ABBREVIATIONS|SHEET\s+NOTES/.test(U);
+
+  const realScheduleTitle = /FINISH\s+(SCHEDULE|LEGEND|MATERIAL)/.test(U) || /ROOM\s+FINISH\s+SCHEDULE/.test(U);
+  const isFloorPlan = /FLOOR\s+PLAN/.test(U);
 
   let score = 0;
-  if (titleHit && /FINISH\s+(SCHEDULE|LEGEND|MATERIAL)/.test(U)) score += 0.6;
+  if (titleHit && realScheduleTitle) score += 0.6;
   if (csiHit) score += 0.3;
   score += Math.min(codeCount / 8, 1) * 0.35; // density
-  if (negative) score *= 0.2; // dampen forms/indexes
+  if (negative) score *= 0.2; // dampen forms/indexes/notes
+  if (isFloorPlan && !realScheduleTitle) score *= 0.3; // it's a plan (where takeoff happens), not the schedule
   score = Math.max(0, Math.min(1, score));
 
   // best-effort sheet number + title (SHEET_NUM needs 3 digits, so it won't match finish codes)

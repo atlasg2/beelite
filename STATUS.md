@@ -75,6 +75,26 @@ rewrites `App_*`, formula tabs untouched). `lib/sheet-builder.ts` is the verifie
 Proven end-to-end: `tsx --env-file=.env scripts/test-sync.ts` created a real sheet via OAuth and read
 back **$15,205.54** (then deleted it).
 
+## Current review focus → V1 FINISHING (scope editor, scanner, dry-run validation)
+Closing out V1. **Codex: review against `git log --oneline -10`.** Findings → `CODEX_REVIEW.md`.
+
+- **Scope / exclusions editor** (the last loop gap) — `/projects/[id]/scope` + `components/scope-editor.tsx`
+  + `replaceScope` action; suggested common inclusions/exclusions; shown on the bid preview and synced to
+  the Sheet's Assumptions. Detail-page nav now: Rates · Takeoff · **Scope** · Bid preview.
+- **Scanner precision** (`lib/pdf.ts`) — added GENERAL NOTES / general-conditions / abbreviations to the
+  negative signals, and a floor-plan dampener (a plan isn't the schedule). Gym false-positives 3→1
+  (remaining page 7 is a floor plan whose title text doesn't extract — that PDF has broken fonts; full
+  fix = vision page-classification, V2). Midlands still correctly finds its 1-page schedule.
+- **Real-plan dry run** (`scripts/dry-run.ts`, `scripts/seed-library.ts`) — seeded 12 realistic standard
+  finishes; ran the **whole loop on a real plan**: Midlands A701 → AI read 9 finishes (0.93–0.97 conf) →
+  5/9 auto-filled from library → bid **$45,938 / profit $11,051 / 26.4% margin** → synced v5 Sheet.
+  Kept as project **"Midlands A701 (dry run)"**. Gym returned 0 finishes (it's a structural/notes set,
+  no schedule) — AI correctly invented nothing. Empty gym dry-run project + sheet cleaned up.
+
+Worth a look: (a) `replaceScope` allowance handling (only for `included`); (b) the scanner negative/
+floor-plan regex — any real schedule it could now wrongly dampen? (c) `scripts/dry-run.ts` placeholder
+takeoff is clearly labeled (not a real bid).
+
 ## Rate library — Codex review ADDRESSED (all 3 findings)
 Codex reviewed the library (seeding/re-confirm/owner-furnished/single-company confirmed correct);
 3 save-boundary findings, all fixed via one shared helper:

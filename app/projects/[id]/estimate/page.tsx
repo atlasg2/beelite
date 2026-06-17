@@ -16,7 +16,7 @@ export default async function EstimatePage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const project = await db.project.findUnique({
     where: { id },
-    include: { finishes: true, takeoff: true, settings: true },
+    include: { finishes: true, takeoff: true, settings: true, scopeItems: { orderBy: { label: "asc" } } },
   });
   if (!project) notFound();
 
@@ -130,6 +130,32 @@ export default async function EstimatePage({ params }: { params: Promise<{ id: s
             </tbody>
           </table>
         </div>
+      </section>
+
+      {/* scope & exclusions */}
+      <section className="section">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+          <h2 className="section-title" style={{ margin: 0 }}>Scope &amp; exclusions</h2>
+          <Link href={`/projects/${id}/scope`} className="btn" style={{ padding: "6px 12px", fontSize: 13 }}>Edit scope</Link>
+        </div>
+        {project.scopeItems.length === 0 ? (
+          <p className="hint" style={{ marginTop: 12 }}>
+            No scope set yet — <Link href={`/projects/${id}/scope`}>add inclusions/exclusions</Link> so the proposal
+            states what’s in your number.
+          </p>
+        ) : (
+          <div className="card" style={{ display: "block", marginTop: 12 }}>
+            {project.scopeItems.map((s) => (
+              <div key={s.id} style={{ display: "flex", gap: 10, padding: "5px 0", fontSize: 14 }}>
+                <span className="badge" data-s={s.mode === "included" ? "draft" : undefined}
+                  style={{ minWidth: 78, justifyContent: "center", ...(s.mode !== "included" ? { background: "#f3f4f6", color: "#6b7280" } : {}) }}>
+                  {s.mode}
+                </span>
+                <span>{s.label}{s.allowance != null ? ` — allowance ${usd(s.allowance)}` : ""}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* pricing settings */}

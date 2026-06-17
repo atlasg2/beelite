@@ -143,6 +143,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
             <Link href={`/projects/${id}/rates`} className="btn">Rates</Link>
             <Link href={`/projects/${id}/takeoff`} className="btn">Takeoff</Link>
+            <Link href={`/projects/${id}/scope`} className="btn">Scope</Link>
             <Link href={`/projects/${id}/estimate`} className="btn">Bid preview</Link>
           </div>
         </section>
