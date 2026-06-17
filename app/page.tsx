@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site-header";
+import { getConnection } from "@/lib/google";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,10 @@ function fmtDate(d: Date | null) {
 }
 
 export default async function Home() {
-  const projects = await db.project.findMany({ orderBy: { createdAt: "desc" } });
+  const [projects, google] = await Promise.all([
+    db.project.findMany({ orderBy: { createdAt: "desc" } }),
+    getConnection(),
+  ]);
 
   return (
     <main className="wrap">
@@ -22,6 +26,27 @@ export default async function Home() {
           </Link>
         }
       />
+
+      <div
+        className="card"
+        style={{ marginBottom: 24, padding: "12px 16px", fontSize: 14, alignItems: "center" }}
+      >
+        <div className="card-main">
+          <span style={{ color: "var(--muted)" }}>Google Sheets: </span>
+          {google?.refreshToken ? (
+            <span style={{ color: "var(--primary)", fontWeight: 600 }}>
+              connected{google.email ? ` · ${google.email}` : ""}
+            </span>
+          ) : (
+            <span style={{ color: "var(--muted)" }}>not connected</span>
+          )}
+        </div>
+        {google?.refreshToken ? (
+          <a className="btn" href="/api/auth/google">Reconnect</a>
+        ) : (
+          <a className="btn btn-primary" href="/api/auth/google">Connect Google</a>
+        )}
+      </div>
 
       {projects.length === 0 ? (
         <div className="empty">
