@@ -20,13 +20,13 @@ at the top of `docs/architecture.md`.
 ---
 
 ## Where we are
-**Steps 1 & 2 done ✅. Next: first real app feature (project creation).**
+**Steps 1–3 done ✅ (app creates/lists bids). Next: documents + AI extraction.**
 
 | # | Step | State | Needs |
 |---|---|---|---|
 | 1 | Google Sheet template (from `claude/sheet-template.md` v4) | ☑ done — built + verified $15,205.54 | — |
 | 2 | Prisma schema matching the sheet | ☑ done — pushed to Supabase (session pooler) | — |
-| 3 | Project creation (+ Sheet copy*) | ☐ next | *copy blocked, see below |
+| 3 | Project creation (+ Sheet copy*) | ☑ done — home ledger + `/projects/new` form (design system). *copy deferred | — |
 | 4 | PDF upload + page tagging | ☐ | — |
 | 5 | AI finish extraction | ☐ | Anthropic key |
 | 6 | Confirm finishes + generate `App_Rates` | ☐ | — |
@@ -36,17 +36,18 @@ at the top of `docs/architecture.md`.
 ---
 
 ## Claude proposes next
-Steps 1 & 2 done. DB is live on Supabase; the Sheet bid engine works. Build the first real app
-feature, split to dodge the Google-copy blocker:
+Steps 1–3 done. App is live: creates/lists bids on Supabase, designed UI. Two ways forward:
 
-1. **Claude:** **project creation (DB + UI)** — seed a default Company, make the "New Project" button
-   work, list projects on the home screen. Fully unblocked (UI → API → DB → UI). First feature you can click.
-2. **Claude (next):** **AI finish extraction** (step 5) — the wow. Needs your **Anthropic key** in `.env`.
-3. **Deferred — Sheet copy** (the `*` on step 3): service account can't *create/copy* sheets on
-   personal Gmail. Needs OAuth (user connects Google) or Workspace Shared Drive. **Decision needed
-   before wiring per-project sheets.** For the demo we can also just reuse one pre-shared sheet.
+1. **Project detail + document upload (step 4)** — a project page, upload a plan PDF, tag pages.
+   Unblocked except PDF storage (Supabase Storage bucket — quick to set up).
+2. **AI finish extraction (step 5) — the wow.** Read a finish schedule → finishes table.
+   Needs your **Anthropic key** in `.env` (`ANTHROPIC_API_KEY`) + a sample plan PDF.
 
-⚠ Don't build `drive.files.copy` with the current service account — it will fail (storage quota).
+Either order works; extraction is the demo headline. Pick based on whether the Anthropic key is ready.
+
+**Deferred — Sheet copy** (`*` on step 3): service account can't create/copy sheets on personal
+Gmail. Needs OAuth or Workspace Shared Drive, or reuse one pre-shared sheet for the demo. Decide
+before wiring per-project sheets. ⚠ Don't build `drive.files.copy` with the current service account.
 
 ## Review focus (for Codex, this round)
 - `prisma/schema.prisma` vs `claude/sheet-template.md` v4 — field names/types match exactly?
