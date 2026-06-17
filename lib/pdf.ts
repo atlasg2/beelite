@@ -89,7 +89,7 @@ export async function renderPage(
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
-  return mime === "image/jpeg" ? canvas.toBuffer("image/jpeg", 80) : canvas.toBuffer("image/png");
+  return mime === "image/jpeg" ? canvas.toBuffer("image/jpeg", 88) : canvas.toBuffer("image/png");
 }
 
 /** Extract each page's text and score it. */

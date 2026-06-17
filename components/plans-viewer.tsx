@@ -20,37 +20,69 @@ const TYPES = [
   { key: "ignore", label: "Ignore" },
 ];
 
-// Render each page only as it nears the viewport — so a 100-page set doesn't render all at once.
-function LazyPage({ documentId, pageNumber }: { documentId: string; pageNumber: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [show, setShow] = useState(false);
+// Render one page to a canvas in the browser (crisp + fast, even on dense drawings) when it nears view.
+// `zoom` is a max-height in vh — at ~82 the whole sheet fits the screen; higher zooms in.
+function PageCanvas({ pdf, pageNumber, zoom }: { pdf: any; pageNumber: number; zoom: number }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [state, setState] = useState<"idle" | "rendering" | "done" | "error">("idle");
+
   useEffect(() => {
-    const el = ref.current;
+    if (!pdf) return;
+    const el = wrapRef.current;
     if (!el) return;
+    let started = false;
     const io = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setShow(true);
-          io.disconnect();
+      async (entries) => {
+        if (!entries[0].isIntersecting || started) return;
+        started = true;
+        io.disconnect();
+        try {
+          setState("rendering");
+          const page = await pdf.getPage(pageNumber);
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          const containerWidth = el.clientWidth || 1000;
+          const base = page.getViewport({ scale: 1 });
+          const scale = Math.max(0.3, Math.min((containerWidth * dpr) / base.width, 3));
+          const viewport = page.getViewport({ scale });
+          const canvas = canvasRef.current;
+          if (!canvas) return;
+          canvas.width = Math.ceil(viewport.width);
+          canvas.height = Math.ceil(viewport.height);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return;
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          setState("done");
+        } catch {
+          setState("error");
         }
       },
-      { rootMargin: "800px 0px" }
+      { rootMargin: "1200px 0px" }
     );
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [pdf, pageNumber]);
+
   return (
-    <div ref={ref} style={{ minHeight: 460, background: "#fff", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border)" }}>
-      {show ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={`/api/preview?doc=${documentId}&page=${pageNumber}`}
-          alt={`Page ${pageNumber}`}
-          style={{ width: "100%", borderRadius: 8, display: "block" }}
-        />
-      ) : (
-        <span className="card-meta mono">Page {pageNumber}…</span>
+    <div
+      ref={wrapRef}
+      style={{ minHeight: 240, background: "#fbfbfa", borderRadius: 8, border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "auto", padding: 8 }}
+    >
+      {state !== "done" && (
+        <span className="card-meta mono">{state === "error" ? `Page ${pageNumber} — couldn’t render` : `Page ${pageNumber}…`}</span>
       )}
+      <canvas
+        ref={canvasRef}
+        style={{
+          maxWidth: "100%",
+          maxHeight: `${zoom}vh`,
+          width: "auto",
+          height: "auto",
+          borderRadius: 6,
+          display: state === "done" ? "block" : "none",
+          margin: "0 auto",
+        }}
+      />
     </div>
   );
 }
@@ -68,7 +100,27 @@ export function PlansViewer({ projectId, documentId, initial }: { projectId: str
       ])
     )
   );
+  const [pdf, setPdf] = useState<any>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(82); // max-height vh: 82 ≈ whole sheet fits the screen
   const [readPending, startRead] = useTransition();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const pdfjs = await import("pdfjs-dist");
+        pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+        const doc = await pdfjs.getDocument({ url: `/api/plan-pdf?doc=${documentId}`, disableRange: true, disableStream: true }).promise;
+        if (!cancelled) setPdf(doc);
+      } catch (e: unknown) {
+        if (!cancelled) setLoadErr((e as Error)?.message ?? "Could not load the PDF");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [documentId]);
 
   const tagged = Object.values(tags).filter((v) => v === "finish_schedule").length;
   const setTag = (id: string, key: string) => setTags((t) => ({ ...t, [id]: t[id] === key ? "untagged" : key }));
@@ -76,14 +128,13 @@ export function PlansViewer({ projectId, documentId, initial }: { projectId: str
   const read = () =>
     startRead(async () => {
       await saveSheetTags(projectId, tagList());
-      await readSchedule(documentId); // redirects to /finishes
+      await readSchedule(documentId);
     });
 
   const suggestions = initial.filter((p) => p.suggestedSheetType === "finish_schedule");
 
   return (
     <div>
-      {/* sticky action bar — always tells you what to do + the way forward */}
       <div
         style={{
           position: "sticky", top: 0, zIndex: 5, background: "var(--bg)",
@@ -95,7 +146,12 @@ export function PlansViewer({ projectId, documentId, initial }: { projectId: str
           {readPending ? "Reading…" : `Read finishes from ${tagged} page${tagged === 1 ? "" : "s"}`}
         </button>
         <span className="card-meta">
-          {tagged === 0 ? "Scroll the set and tag the finish-schedule page." : `${tagged} page${tagged === 1 ? "" : "s"} tagged`}
+          {!pdf && !loadErr ? "Loading the plan…" : tagged === 0 ? "Scroll the set and tag the finish-schedule page." : `${tagged} tagged`}
+        </span>
+        <span style={{ display: "flex", gap: 4, alignItems: "center" }}>
+          <button className="btn mono" title="Zoom out" style={{ padding: "4px 11px", fontSize: 15 }} onClick={() => setZoom((z) => Math.max(40, z - 18))}>−</button>
+          <button className="btn" title="Fit page to screen" style={{ padding: "4px 10px", fontSize: 13 }} onClick={() => setZoom(82)}>Fit</button>
+          <button className="btn mono" title="Zoom in" style={{ padding: "4px 11px", fontSize: 15 }} onClick={() => setZoom((z) => Math.min(320, z + 25))}>+</button>
         </span>
         {suggestions.length > 0 && (
           <span style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
@@ -109,7 +165,8 @@ export function PlansViewer({ projectId, documentId, initial }: { projectId: str
         )}
       </div>
 
-      {/* every page, big, top to bottom */}
+      {loadErr && <p className="hint" style={{ color: "#b45309" }}>⚠ {loadErr}</p>}
+
       <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
         {initial.map((p) => {
           const suggested = p.suggestedSheetType === "finish_schedule";
@@ -128,8 +185,8 @@ export function PlansViewer({ projectId, documentId, initial }: { projectId: str
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
                   <strong className="mono" style={{ fontSize: 15 }}>Page {p.pageNumber}</strong>
-                  {p.sheetNumber && <span className="card-meta">sheet {p.sheetNumber} <span style={{ opacity: 0.7 }}>(scanner guess)</span></span>}
-                  {suggested && <span style={{ fontSize: 12.5, color: "var(--marking)", fontWeight: 600 }}>likely a finish schedule</span>}
+                  {isSchedule && <span style={{ fontSize: 12.5, color: "var(--marking)", fontWeight: 600 }}>tagged: finish schedule</span>}
+                  {!isSchedule && suggested && <span style={{ fontSize: 12.5, color: "var(--marking)", fontWeight: 600 }}>likely a finish schedule</span>}
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {TYPES.map((t) => (
@@ -145,7 +202,7 @@ export function PlansViewer({ projectId, documentId, initial }: { projectId: str
                   ))}
                 </div>
               </div>
-              <LazyPage documentId={documentId} pageNumber={p.pageNumber} />
+              <PageCanvas pdf={pdf} pageNumber={p.pageNumber} zoom={zoom} />
             </div>
           );
         })}

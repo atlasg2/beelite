@@ -41,7 +41,9 @@ export async function GET(req: Request) {
   try {
     const bytes = await pdfBytes(documentId);
     if (!bytes) return new Response("not found", { status: 404 });
-    const img = await renderPage(bytes, page, 1.4, "image/jpeg");
+    // Architectural sheets are physically large, so a modest scale is already thousands of px wide
+    // (crisp on screen) AND renders fast. High scale just makes a huge slow raster.
+    const img = await renderPage(bytes, page, 1.25, "image/jpeg");
     if (PAGE_CACHE.size >= MAX_PAGES) PAGE_CACHE.clear();
     PAGE_CACHE.set(key, img);
     return new Response(new Uint8Array(img), { headers });

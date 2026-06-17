@@ -333,8 +333,8 @@ a.card:hover {
 /* ── Project workspace shell (rail + stage pane) ── */
 .ws {
   display: grid;
-  grid-template-columns: 270px 1fr;
-  max-width: 1240px;
+  grid-template-columns: 260px 1fr;
+  max-width: 1560px;
   margin: 0 auto;
   min-height: 100vh;
 }
@@ -452,6 +452,24 @@ a.card:hover {
   padding: 34px 40px 96px;
   min-width: 0;
 }
+
+/* collapse the rail for a wider, clearer plan view */
+.ws-collapsed { grid-template-columns: 1fr; }
+.ws-collapsed .ws-rail { display: none; }
+.ws-toggle {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  margin-bottom: 18px;
+}
+.ws-toggle:hover { color: var(--text); border-color: #c3cad2; }
 
 /* rail collapses to a top bar on narrow viewports */
 @media (max-width: 880px) {
