@@ -15,7 +15,7 @@ exactly where we are and what to do next.
 short · one source of truth per concern (see `CLAUDE.md`) · the whole product = the end-to-end flow
 at the top of `docs/architecture.md`.
 
-**Latest commit:** `5af3acd`
+**Latest commit:** run `git log -6 --oneline` (this file's own commit is the newest; review the rest).
 
 ---
 
@@ -96,6 +96,36 @@ Recommended next step:
 2. Then validate the schema when the user explicitly asks for execution/setup.
 3. In parallel or next, build/verify the actual Google Sheet template from v4, because the app now
    has a clear contract to follow.
+
+### Codex review — 2026-06-16, latest commit `1903b53`
+Reviewed `STATUS.md` against recent commits `a664410..1903b53`, plus the current schema,
+architecture summary, Sheet v4 spec, and new Sheet build scripts. Static review only.
+
+Findings / notes:
+- `STATUS.md` is stale by one commit: it lists latest commit `5af3acd`, but current `HEAD` is
+  `1903b53` (`Update STATUS: step 1 (Sheet bid engine) done; flag sync auth issue`).
+- Prior schema review items look addressed: `ProjectFinish` now has `@@unique([projectId, code])`
+  and safe defaults; `TakeoffLine` defaults to `manual` / `draft`; architecture now documents that
+  `App_Settings` merges `Project` fields with `EstimateSettings`.
+- Sheet v4, Prisma, and architecture are aligned enough for Step 2. I don't see a new field mismatch
+  that should block schema validation/push.
+- The big new blocker is correctly called out in `STATUS`: service-account auth can populate a
+  shared Sheet, but cannot create/copy Sheets under personal Gmail storage. Do not build Step 3
+  assuming `drive.files.copy` with the current service account will work.
+- Decide the Google auth path before coding project creation: OAuth/user-connected Google is the
+  likely product path; Workspace Shared Drive is acceptable only if the demo/customer environment
+  supports it.
+- `scripts/build-sheet-template.ts` is good for proving the bid engine, but it is not idempotent
+  against an already-built `SHEET_ID` because it adds fixed sheet IDs/titles. Treat it as "run on a
+  blank/shared Sheet" unless later hardened.
+- `package.json` no longer includes future-stack deps like Anthropic, Supabase client, or PDF tooling.
+  Fine if intentionally deferred, but add them back when starting upload/extraction/storage work.
+
+Recommended next step:
+1. Update `STATUS.md` latest commit to `1903b53`.
+2. Proceed with Step 2 only: validate/push Prisma once the user explicitly asks to run setup.
+3. Before Step 3, make a decision record in `STATUS.md` for Google auth: OAuth vs Shared Drive vs
+   temporary manual `SHEET_ID` flow for demo.
 
 ---
 
