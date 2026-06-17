@@ -20,13 +20,13 @@ at the top of `docs/architecture.md`.
 ---
 
 ## Where we are
-**Step 1 done ✅ (Sheet bid engine built + verified $15,205.54). Step 2 — Prisma schema next.**
+**Steps 1 & 2 done ✅. Next: first real app feature (project creation).**
 
 | # | Step | State | Needs |
 |---|---|---|---|
-| 1 | Google Sheet template (from `claude/sheet-template.md` v4) | ☑ done — built via `scripts/build-sheet-template.ts`, verified | — |
-| 2 | Prisma schema matching the sheet | ◑ written, not validated/pushed | Supabase |
-| 3 | Project creation + Sheet copy | ☐ | Google service account |
+| 1 | Google Sheet template (from `claude/sheet-template.md` v4) | ☑ done — built + verified $15,205.54 | — |
+| 2 | Prisma schema matching the sheet | ☑ done — pushed to Supabase (session pooler) | — |
+| 3 | Project creation (+ Sheet copy*) | ☐ next | *copy blocked, see below |
 | 4 | PDF upload + page tagging | ☐ | — |
 | 5 | AI finish extraction | ☐ | Anthropic key |
 | 6 | Confirm finishes + generate `App_Rates` | ☐ | — |
@@ -36,18 +36,17 @@ at the top of `docs/architecture.md`.
 ---
 
 ## Claude proposes next
-Step 1 done — Sheet bid engine built + verified ($15,205.54), owned by you, populated by the
-service account. Template id: `1WNZncwQZqEa7p64rLq6GVlMm2DUhMeCLw6H3QoVao3U`.
+Steps 1 & 2 done. DB is live on Supabase; the Sheet bid engine works. Build the first real app
+feature, split to dodge the Google-copy blocker:
 
-1. **You:** open the Sheet, sanity-check it, try editing a `Rates` override to see the total move.
-2. **You:** create a Supabase project (free) for the database; have the Anthropic key handy.
-3. **Claude:** validate the schema (`prisma generate`) + push to Supabase (finishes step 2).
-4. **Claude:** step 3 — project creation + Sheet copy.
+1. **Claude:** **project creation (DB + UI)** — seed a default Company, make the "New Project" button
+   work, list projects on the home screen. Fully unblocked (UI → API → DB → UI). First feature you can click.
+2. **Claude (next):** **AI finish extraction** (step 5) — the wow. Needs your **Anthropic key** in `.env`.
+3. **Deferred — Sheet copy** (the `*` on step 3): service account can't *create/copy* sheets on
+   personal Gmail. Needs OAuth (user connects Google) or Workspace Shared Drive. **Decision needed
+   before wiring per-project sheets.** For the demo we can also just reuse one pre-shared sheet.
 
-⚠ **Known issue for the sync step (3 & 8):** the same service-account storage limit means the app
-**can't *copy* the template** on personal Gmail either. The per-project Sheet creation will need a
-different auth path — OAuth (user connects their Google) or a Workspace Shared Drive. Decide before
-building step 3. (Populating a pre-shared sheet works fine; *creating/copying* is the blocked part.)
+⚠ Don't build `drive.files.copy` with the current service account — it will fail (storage quota).
 
 ## Review focus (for Codex, this round)
 - `prisma/schema.prisma` vs `claude/sheet-template.md` v4 — field names/types match exactly?
