@@ -1,13 +1,17 @@
-# STATUS — the one briefing file (read this, ignore prior memory)
+# STATUS — single briefing & review file
 
-**To any reviewer (Codex especially):** this file is the *complete, current* brief. **Ignore earlier
-session memory or past notes** — if something isn't in this file, it is not current. Everything you
-need to review is here; you don't need more context.
+## 📋 CODEX — when you're told "read STATUS.md", do exactly this (no other context needed):
+1. **Ignore your prior session memory.** THIS FILE is the complete, current truth. If something
+   isn't in this file, it is not current.
+2. **Review** the proposal in the **"Current review focus"** section below, checking it against the
+   latest committed code (`git log --oneline -8`).
+3. **Write your review** — findings + one recommended next step — in the **"Codex review"** section
+   at the very bottom of this file. Do NOT edit anything above that section.
 
-## ⛔ Removed / out of scope — do NOT review or bring up
-- **NOLA permit data** and **SAM.gov lead-sourcing** — deleted (model, scripts, env all removed).
-  This was an abandoned side-quest. Not part of the product. Don't mention it.
-- Lead generation / prospecting in general — not in scope.
+That's the whole job. You do not need anything else.
+
+> ⛔ **Removed / out of scope — do NOT review or bring up:** NOLA permit data, SAM.gov lead-sourcing
+> (deleted), and lead-generation/prospecting in general. Abandoned side-quest, not part of the product.
 
 ## What Beelite is
 A commercial flooring **takeoff & estimating** app. Upload plans → AI reads the finish schedule →
