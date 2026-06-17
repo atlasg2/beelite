@@ -19,6 +19,13 @@ export async function uploadPlan(path: string, bytes: Buffer | Uint8Array, conte
   return path;
 }
 
+/** Download a stored plan's bytes (for sending to the AI). */
+export async function downloadPlan(path: string): Promise<Buffer> {
+  const { data, error } = await supabaseAdmin().storage.from(PLANS_BUCKET).download(path);
+  if (error) throw error;
+  return Buffer.from(await data.arrayBuffer());
+}
+
 /** Time-limited link to a stored (private) plan. */
 export async function signedUrl(path: string, expiresInSeconds = 3600) {
   const { data, error } = await supabaseAdmin().storage.from(PLANS_BUCKET).createSignedUrl(path, expiresInSeconds);

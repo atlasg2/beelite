@@ -17,9 +17,15 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const project = await db.project.findUnique({
     where: { id },
-    include: { documents: { include: { pages: true }, orderBy: { id: "desc" } } },
+    include: {
+      documents: { include: { pages: true }, orderBy: { id: "desc" } },
+      finishes: true,
+    },
   });
   if (!project) notFound();
+
+  const hasPlan = project.documents.length > 0;
+  const finishCount = project.finishes.length;
 
   const upload = uploadDocument.bind(null, project.id);
   const docs = await Promise.all(
@@ -82,7 +88,32 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         </form>
       </section>
 
-      <p className="hint">Next: tag the finish-schedule page, then read finishes with AI.</p>
+      <section className="section">
+        <h2 className="section-title">Finishes {finishCount > 0 && `(${finishCount})`}</h2>
+        {finishCount > 0 ? (
+          <div className="card">
+            <div className="card-main">
+              <div className="card-title">{finishCount} finishes confirmed</div>
+              <div className="card-meta">
+                {project.finishes.filter((f) => f.inScope).length} in scope · ready for rates &amp; takeoff
+              </div>
+            </div>
+            <Link href={`/projects/${id}/finishes`} className="btn">Review</Link>
+          </div>
+        ) : hasPlan ? (
+          <div className="card">
+            <div className="card-main">
+              <div className="card-title">Read the finish schedule</div>
+              <div className="card-meta">Let Claude pull the finish codes off your plan.</div>
+            </div>
+            <Link href={`/projects/${id}/finishes`} className="btn btn-primary">Read with AI</Link>
+          </div>
+        ) : (
+          <p className="hint" style={{ marginTop: 0, borderTop: 0, paddingTop: 0 }}>
+            Upload a plan above, then read its finishes.
+          </p>
+        )}
+      </section>
     </main>
   );
 }
