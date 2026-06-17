@@ -37,22 +37,34 @@ at the top of `docs/architecture.md`.
 
 ---
 
-## Claude proposes next
-Extraction works in a script ($0.06/page, opus-4-8, structured output). Now make it a product feature:
+## Claude proposes next — PROPOSAL: "Pages" screen + page-targeting (for Codex review)
 
-1. **Claude:** wire extraction into the app — a "Read schedule" action on a tagged PDF →
-   `extractFinishSchedule` → review table → confirm/edit → save `ProjectFinish` + log the
-   raw vs corrected output in the `Extraction` table (the eval/training asset).
-2. **Claude:** page tagging (mark which uploaded page is the finish schedule) so extraction
-   targets the right page in multi-page sets.
-3. **Claude:** seed `App_Rates` from confirmed finishes (step 6), then takeoff (7) + sync (8).
+Full plan→bid loop works in-app. 4 sample bids seeded (Midlands 1pg, Newport News 26pg,
+PJHS 73pg, DC Youth gym 108pg). Problem: extraction currently sends the WHOLE PDF to Claude —
+fine for 1pg (~$0.06), but a 108pg set is ~$1–2 and unreliable (schedule buried on pp 4/7/33).
 
-Note: PDF sent to Claude *natively* (no pre-extract); single structured call (not an agent),
-per Anthropic guidance.
+**Proposed feature — a "Pages" screen + page-targeting:**
+1. **On upload, scan every page** (local text scan, $0 — already proven: it found NN p4/p20,
+   gym p4/p7/p33). Create a `PlanSheet` per page storing: pageNumber, detected sheet title,
+   **scanScore + scanSignals (JSON)**, suggested `sheetType`. (Store everything, not just the
+   final finishes — so we can backtrack which page a finish came from / why one was missed.)
+2. **Pages screen:** list every page with its detected sheet title + a *suggested* tag badge
+   (scan pre-flags likely finish schedules). Dropdown to set tag (finish_schedule / finish_plan /
+   floor_plan / specs / ignore). Render a page preview **on demand** (don't render 108 thumbnails upfront).
+3. **"Read finishes"** runs extraction on ONLY the pages tagged `finish_schedule` — split those
+   out with `pdf-lib`, send to Claude (~$0.06–0.18). Multiple schedule pages → extract + merge.
+4. Edge cases: scanned PDFs (no text layer) → fall back to page images/OCR later; finishes in
+   spec sections (text) → scan catches those too.
 
-**Deferred — Sheet copy** (`*` on step 3): service account can't create/copy sheets on personal
-Gmail. Needs OAuth or Workspace Shared Drive, or reuse one pre-shared sheet for the demo. Decide
-before wiring per-project sheets. ⚠ Don't build `drive.files.copy` with the current service account.
+**Schema add:** `PlanSheet.scanScore Float?`, `PlanSheet.scanSignals Json?` (+ a `PlanSheet` per page).
+
+**For Codex:** review this proposal — thumbnails-vs-list for the Pages screen, the scan heuristic
+(keywords + finish-code density), the per-page storage model, and whether to auto-extract vs
+suggest-and-confirm (Claude leans suggest-and-confirm: human glances + taps the schedule page on a
+money document). Note: 2015-era plans are fine — finish-schedule format (CSI 09 06 00) is unchanged.
+
+**Deferred — Sheet sync/copy:** service account can't create/copy sheets on personal Gmail
+(OAuth or Workspace Shared Drive, or reuse one pre-shared sheet for the demo). Decide before sync.
 
 ## Review focus (for Codex, this round)
 - `prisma/schema.prisma` vs `claude/sheet-template.md` v4 — field names/types match exactly?
