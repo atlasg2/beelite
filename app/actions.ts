@@ -186,7 +186,7 @@ type RateInput = {
   materialSource: string;
 };
 
-export async function saveRates(projectId: string, rates: RateInput[]) {
+export async function saveRates(projectId: string, rates: RateInput[], toLibrary = false) {
   await Promise.all(
     rates.map((r) =>
       db.projectFinish.update({
@@ -202,8 +202,71 @@ export async function saveRates(projectId: string, rates: RateInput[]) {
       })
     )
   );
+  if (toLibrary) await pushBidRatesToLibrary(projectId); // "learn" — copy these into the company standard rates
   revalidatePath(`/projects/${projectId}/estimate`);
   redirect(`/projects/${projectId}/estimate`);
+}
+
+// ── Company rate library (the "standard rates" that seed every new bid) ───────
+// Internal: copy a bid's priced, in-scope finishes into the company library (upsert by code).
+async function pushBidRatesToLibrary(projectId: string) {
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    include: { finishes: { where: { inScope: true } } },
+  });
+  if (!project) return;
+  for (const f of project.finishes) {
+    if (f.installRate <= 0 && f.materialUnitCost <= 0) continue; // skip unpriced finishes
+    const item = await db.finishLibraryItem.upsert({
+      where: { companyId_code: { companyId: project.companyId, code: f.code } },
+      create: { companyId: project.companyId, code: f.code, type: f.type, description: f.description, unit: f.unit, category: f.category },
+      update: { type: f.type, description: f.description, unit: f.unit, category: f.category },
+    });
+    await db.rateCatalogEntry.upsert({
+      where: { finishId: item.id },
+      create: { companyId: project.companyId, finishId: item.id, materialUnitCost: f.materialUnitCost, installRate: f.installRate, wastePct: f.wastePct, cartonSize: f.cartonSize, materialSource: f.materialSource },
+      update: { materialUnitCost: f.materialUnitCost, installRate: f.installRate, wastePct: f.wastePct, cartonSize: f.cartonSize, materialSource: f.materialSource },
+    });
+  }
+}
+
+type LibraryRow = {
+  code: string;
+  type: string;
+  description: string;
+  unit: string;
+  category: string;
+  materialUnitCost: number;
+  installRate: number;
+  wastePct: number;
+  cartonSize: number | null;
+  materialSource: string;
+};
+
+// Direct edit of the standard-rates library from /library.
+export async function saveLibrary(rows: LibraryRow[]) {
+  const company = await getOrCreateDefaultCompany();
+  const codes = rows.map((r) => r.code.trim()).filter(Boolean);
+  // drop rows the user removed (RateCatalogEntry cascades with the finish item)
+  await db.finishLibraryItem.deleteMany({
+    where: { companyId: company.id, code: { notIn: codes.length ? codes : ["__none__"] } },
+  });
+  for (const r of rows) {
+    const code = r.code.trim();
+    if (!code) continue;
+    const item = await db.finishLibraryItem.upsert({
+      where: { companyId_code: { companyId: company.id, code } },
+      create: { companyId: company.id, code, type: r.type, description: r.description, unit: r.unit, category: r.category },
+      update: { type: r.type, description: r.description, unit: r.unit, category: r.category },
+    });
+    await db.rateCatalogEntry.upsert({
+      where: { finishId: item.id },
+      create: { companyId: company.id, finishId: item.id, materialUnitCost: r.materialUnitCost, installRate: r.installRate, wastePct: r.wastePct, cartonSize: r.cartonSize, materialSource: r.materialSource },
+      update: { materialUnitCost: r.materialUnitCost, installRate: r.installRate, wastePct: r.wastePct, cartonSize: r.cartonSize, materialSource: r.materialSource },
+    });
+  }
+  revalidatePath("/library");
+  redirect("/library");
 }
 
 type TakeoffInput = {

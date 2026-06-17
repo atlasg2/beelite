@@ -75,6 +75,29 @@ rewrites `App_*`, formula tabs untouched). `lib/sheet-builder.ts` is the verifie
 Proven end-to-end: `tsx --env-file=.env scripts/test-sync.ts` created a real sheet via OAuth and read
 back **$15,205.54** (then deleted it).
 
+## Current review focus → COMPANY RATE LIBRARY (built; review it)
+The "standard rates" backbone — so a new bid auto-prices instantly and Elite never waits on a sub.
+**Codex: review the library against `git log --oneline -8`.** Findings → `CODEX_REVIEW.md`.
+
+What it does:
+- **`/library`** (`app/library/page.tsx` + `components/library-editor.tsx`) — manage the company's
+  standard finishes + material/install rates (add/edit/delete rows). Linked from home header.
+- **`saveLibrary(rows)`** (`app/actions.ts`) — upserts `FinishLibraryItem` (by `companyId_code`) +
+  its 1:1 `RateCatalogEntry`; deletes removed codes (rate cascades).
+- **Auto-fill:** `confirmFinishes` already seeds each bid finish from the library on an exact
+  `company+code` match (else `needs_rate`) — snapshot at confirm, override wins (v5 contract §8).
+- **Learn-as-you-go:** the `/rates` editor has an "Also save to my standard rates" checkbox →
+  `saveRates(projectId, rows, toLibrary=true)` → internal `pushBidRatesToLibrary` upserts the bid's
+  priced in-scope finishes back into the library.
+- Smoke-tested: compound-unique upsert + company-scoped code lookup + cascade delete all verified.
+  Build green, typecheck clean.
+
+Worth a close look: (a) `saveLibrary` delete-removed logic (the `notIn` sentinel when rows is empty —
+does it ever nuke the whole library unintentionally?); (b) `pushBidRatesToLibrary` skip rule
+(`installRate<=0 && materialUnitCost<=0`) — right call for owner-furnished finishes? (c) seeding vs.
+"learn" round-trip — any way they fight (e.g. re-confirm after a library edit)? (d) single-company
+assumption (`getOrCreateDefaultCompany`) — fine for now?
+
 ## v5 implementation — Codex review ADDRESSED (all 4 findings)
 Codex reviewed the v5 implementation (CODEX_REVIEW.md) — core math/formatting/seeding confirmed
 correct; 4 findings, all fixed:

@@ -19,6 +19,7 @@ const num: React.CSSProperties = { font: "inherit", fontSize: 14, padding: "6px 
 
 export function RatesEditor({ projectId, initial }: { projectId: string; initial: Row[] }) {
   const [rows, setRows] = useState<Row[]>(initial);
+  const [toLibrary, setToLibrary] = useState(false);
   const [pending, start] = useTransition();
   const set = (i: number, patch: Partial<Row>) =>
     setRows((r) => r.map((row, j) => (j === i ? { ...row, ...patch } : row)));
@@ -85,16 +86,21 @@ export function RatesEditor({ projectId, initial }: { projectId: string; initial
           </tbody>
         </table>
       </div>
-      <div className="form-actions" style={{ marginTop: 18 }}>
+      <div className="form-actions" style={{ marginTop: 18, gap: 14, flexWrap: "wrap" }}>
         <button className="btn btn-primary" disabled={pending}
-          onClick={() => start(() => saveRates(projectId, rows))}>
+          onClick={() => start(() => saveRates(projectId, rows, toLibrary))}>
           {pending ? "Saving…" : "Save rates"}
         </button>
-        <span className="hint" style={{ margin: 0, padding: 0, border: 0 }}>
-          Waste as a decimal (0.08 = 8%). Install $/u is what the sub charges per unit (your standard rate).
-          “Owner/GC furnishes” zeroes material — Elite only prices the install.
-        </span>
+        <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14, color: "var(--muted)" }}>
+          <input type="checkbox" checked={toLibrary} onChange={(e) => setToLibrary(e.target.checked)} />
+          Also save to my standard rates
+        </label>
       </div>
+      <p className="hint">
+        Waste as a decimal (0.08 = 8%). Install $/u is what the sub charges per unit (your standard rate).
+        “Owner/GC furnishes” zeroes material — Elite only prices the install. Manage your standard rates on{" "}
+        <a href="/library">Standard rates</a>.
+      </p>
     </div>
   );
 }

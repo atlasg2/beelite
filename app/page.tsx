@@ -21,9 +21,10 @@ export default async function Home() {
     <main className="wrap">
       <SiteHeader
         action={
-          <Link href="/projects/new" className="btn btn-primary">
-            New bid
-          </Link>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Link href="/library" className="btn">Standard rates</Link>
+            <Link href="/projects/new" className="btn btn-primary">New bid</Link>
+          </div>
         }
       />
 
