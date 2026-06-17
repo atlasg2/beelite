@@ -38,8 +38,8 @@ Stack: Next.js + Supabase (Postgres + storage) + Prisma + Anthropic API + Google
 | 1 | Google Sheet bid-engine template (`claude/sheet-template.md` v4) | ☑ built + verified $15,205.54 |
 | 2 | Prisma schema → Supabase | ☑ pushed (session pooler) |
 | 3 | Project creation (home ledger + `/projects/new`) | ☑ |
-| 4 | PDF upload | ☑ (page tagging = the proposal below) |
-| 5 | AI finish extraction in app (`lib/anthropic.ts`, `/finishes` review/confirm, `Extraction` log) | ☑ ~$0.06/page |
+| 4 | PDF upload + **page-targeting** (scan every page → Pages screen → tag → preview) | ☑ scan finds schedule pages free (gym pp 4/7/33) |
+| 5 | AI finish extraction in app — **targeted** (only tagged pages, `pdf-lib` split) + `/finishes` review/confirm + `Extraction` log | ☑ ~$0.06–0.18/bid |
 | 6 | Rates per finish (`/rates`) | ☑ |
 | 7 | Room-level takeoff (`/takeoff`) | ☑ |
 | 8 | In-app bid preview (`/estimate`, `lib/estimate.ts` mirrors the Sheet math) | ☑ |
@@ -51,31 +51,20 @@ PJHS (73pg), **DC Youth gym (108pg)**. Files in `samples/` (gitignored).
 
 ---
 
-## Current review focus → PROPOSAL: "Pages" screen + page-targeting
-**Problem:** extraction currently sends the *whole* PDF to Claude. Fine for 1pg (~$0.06); a 108pg
-set is ~$1–2 and unreliable (schedule buried on pp 4/7/33).
+## Recently shipped — page-targeting (Codex-reviewed, built as agreed)
+Scan every page on upload → `PlanSheet` per page (scanScore/scanSignals/suggestedSheetType, separate
+from human-confirmed sheetType) → **Pages screen** (`/projects/[id]/pages`): list + suggested tags +
+on-demand preview (`/api/preview`) → tag → **targeted extraction** on only tagged pages (`pdf-lib`
+split, one Claude call). Verified: gym 108pg renders previews; scan pre-flags pp 4/7/33.
 
-**Proposal:**
-1. **On upload, scan every page** locally ($0; already proven — found NN p4/p20, gym p4/p7/p33).
-   Create a `PlanSheet` per page storing pageNumber, detected sheet title, **scanScore + scanSignals
-   (JSON)**, suggested `sheetType`. (Store everything, so we can backtrack a missed/wrong finish.)
-2. **Pages screen:** list every page + detected title + a *suggested* tag badge; dropdown to set tag
-   (finish_schedule / finish_plan / floor_plan / specs / ignore); render a page preview **on demand**
-   (not 108 thumbnails upfront).
-3. **"Read finishes"** runs extraction on ONLY pages tagged `finish_schedule` — split via `pdf-lib`,
-   send to Claude (~$0.06–0.18). Multiple schedule pages → extract + merge.
-4. Edge: scanned PDFs (no text layer) → page-image/OCR fallback later; spec-section finishes → scan catches.
-
-**Schema add:** `PlanSheet.scanScore Float?`, `PlanSheet.scanSignals Json?`.
-
-**For Codex — weigh in on:** list-vs-thumbnail Pages screen · the scan heuristic (keywords +
-finish-code density) · the per-page storage model · auto-extract vs **suggest-and-confirm** (Claude
-leans suggest-and-confirm: human glances + taps the schedule page on a money document).
-(2015-era plans are fine — finish-schedule format, CSI 09 06 00, is unchanged.)
-
-**Deferred — Sheet sync (step 9):** service account can't create/copy Sheets on personal Gmail.
-Options: OAuth (user connects Google), Workspace Shared Drive, or reuse one pre-shared Sheet for the
-demo. Decide before building sync. ⚠ Don't build `drive.files.copy` with the current service account.
+## Current review focus → none pending
+Full product loop works end-to-end on real multi-page plans. Next decisions (no review needed yet):
+- **Step 9 — Google Sheet sync.** Blocked on an auth choice: service account can't create/copy Sheets
+  on personal Gmail. Options: OAuth (user connects Google) · Workspace Shared Drive · reuse one
+  pre-shared Sheet for the demo. ⚠ Don't build `drive.files.copy` with the current service account.
+- **Step 10 — visual polish** (last).
+- Possible hardening: run the real targeted extraction on the gym (3 pages) end-to-end; tune the
+  scanner on spec-heavy sets (PJHS flagged none — finishes live in spec sections).
 
 ---
 
