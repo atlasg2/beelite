@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { signedUrl } from "@/lib/storage";
 import { SiteHeader } from "@/components/site-header";
 import { uploadDocument } from "@/app/actions";
+import { computeBid, usd } from "@/lib/estimate";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +21,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     include: {
       documents: { include: { pages: true }, orderBy: { id: "desc" } },
       finishes: true,
+      takeoff: true,
+      settings: true,
     },
   });
   if (!project) notFound();
 
   const hasPlan = project.documents.length > 0;
   const finishCount = project.finishes.length;
+  const hasTakeoff = project.takeoff.length > 0;
+  const bid = computeBid(project.finishes, project.takeoff, project.settings);
 
   const upload = uploadDocument.bind(null, project.id);
   const docs = await Promise.all(
@@ -114,6 +119,26 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
           </p>
         )}
       </section>
+
+      {finishCount > 0 && (
+        <section className="section">
+          <h2 className="section-title">Bid</h2>
+          <div className="card" style={{ alignItems: "baseline" }}>
+            <div className="card-main">
+              <div className="card-meta">Bid total {hasTakeoff ? "" : "(enter a takeoff to populate)"}</div>
+              <div style={{ fontSize: 30, fontWeight: 700, fontFamily: "var(--font-display)", letterSpacing: "-0.02em" }}>
+                {usd(bid.bidTotal)}
+              </div>
+            </div>
+            <Link href={`/projects/${id}/estimate`} className="btn btn-primary">Open bid</Link>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+            <Link href={`/projects/${id}/rates`} className="btn">Rates</Link>
+            <Link href={`/projects/${id}/takeoff`} className="btn">Takeoff</Link>
+            <Link href={`/projects/${id}/estimate`} className="btn">Bid preview</Link>
+          </div>
+        </section>
+      )}
     </main>
   );
 }

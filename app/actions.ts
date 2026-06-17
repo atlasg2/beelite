@@ -103,3 +103,85 @@ export async function confirmFinishes(projectId: string, finishes: ExtractedFini
   redirect(`/projects/${projectId}`);
 }
 
+type RateInput = {
+  id: string;
+  materialCost: number;
+  installMode: string;
+  installAmount: number | null;
+  wastePct: number;
+  cartonSize: number | null;
+  furnishType: string;
+};
+
+export async function saveRates(projectId: string, rates: RateInput[]) {
+  await Promise.all(
+    rates.map((r) =>
+      db.projectFinish.update({
+        where: { id: r.id },
+        data: {
+          materialCost: r.materialCost,
+          installMode: r.installMode,
+          installAmount: r.installAmount,
+          wastePct: r.wastePct,
+          cartonSize: r.cartonSize,
+          furnishType: r.furnishType,
+        },
+      })
+    )
+  );
+  revalidatePath(`/projects/${projectId}/estimate`);
+  redirect(`/projects/${projectId}/estimate`);
+}
+
+type TakeoffInput = {
+  sheet: string | null;
+  area: string;
+  finishCode: string;
+  qty: number;
+  unit: string;
+  status: string;
+};
+
+export async function replaceTakeoff(projectId: string, rows: TakeoffInput[]) {
+  await db.takeoffLine.deleteMany({ where: { projectId } });
+  if (rows.length) {
+    await db.takeoffLine.createMany({
+      data: rows
+        .filter((r) => r.finishCode && r.qty > 0)
+        .map((r) => ({
+          projectId,
+          sheet: r.sheet,
+          area: r.area || "—",
+          finishCode: r.finishCode,
+          qty: r.qty,
+          unit: r.unit,
+          status: r.status || "approved",
+        })),
+    });
+  }
+  revalidatePath(`/projects/${projectId}/estimate`);
+  redirect(`/projects/${projectId}/estimate`);
+}
+
+export async function saveSettings(projectId: string, formData: FormData) {
+  const num = (k: string, d = 0) => {
+    const v = parseFloat(String(formData.get(k) ?? ""));
+    return Number.isFinite(v) ? v : d;
+  };
+  const data = {
+    pricingMode: String(formData.get("pricingMode") ?? "markup"),
+    pct: num("pct", 0.15),
+    subMarkupPct: num("subMarkupPct", 0.15),
+    taxPct: num("taxPct", 0),
+    taxMode: String(formData.get("taxMode") ?? "total_sell_plus_freight"),
+    freight: num("freight", 0),
+  };
+  await db.estimateSettings.upsert({
+    where: { projectId },
+    create: { projectId, ...data },
+    update: data,
+  });
+  revalidatePath(`/projects/${projectId}/estimate`);
+  redirect(`/projects/${projectId}/estimate`);
+}
+
