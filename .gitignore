@@ -10,3 +10,6 @@ next-env.d.ts
 # secrets — service account key, never commit
 service-account.json
 elite-*.json
+
+# sample plans (third-party PDFs)
+samples/
