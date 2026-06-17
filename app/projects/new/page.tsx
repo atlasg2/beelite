@@ -7,8 +7,8 @@ export default function NewProjectPage() {
     <main className="wrap">
       <SiteHeader />
 
-      <div className="section-label">
-        <span className="eyebrow">New bid</span>
+      <div className="page-head">
+        <h1 className="page-title">New bid</h1>
       </div>
 
       <form action={createProject} className="form">
@@ -36,7 +36,7 @@ export default function NewProjectPage() {
         </div>
 
         <div className="field">
-          <label htmlFor="bidDate">Bid date</label>
+          <label htmlFor="bidDate">Bid due date</label>
           <input id="bidDate" name="bidDate" type="date" />
         </div>
 

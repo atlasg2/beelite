@@ -1,27 +1,26 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
-/** Brand row + tagline + the dimension-line divider (the signature motif). */
+/** Clean brand header: tile logo + wordmark, optional action on the right. */
 export function SiteHeader({ action }: { action?: ReactNode }) {
   return (
-    <header>
-      <div className="topbar">
+    <header className="app-header">
+      <Link href="/" className="brand">
+        <svg className="logo" viewBox="0 0 40 40" aria-hidden="true">
+          <rect width="40" height="40" rx="11" fill="#0f766e" />
+          <g fill="#ffffff" opacity="0.92">
+            <rect x="10" y="10" width="8.5" height="8.5" rx="2" />
+            <rect x="21.5" y="10" width="8.5" height="8.5" rx="2" opacity="0.65" />
+            <rect x="10" y="21.5" width="8.5" height="8.5" rx="2" opacity="0.65" />
+            <rect x="21.5" y="21.5" width="8.5" height="8.5" rx="2" />
+          </g>
+        </svg>
         <div>
-          <div className="brand">
-            <svg className="mark" viewBox="0 0 20 22" aria-hidden="true">
-              <polygon
-                points="10,1 19,6 19,16 10,21 1,16 1,6"
-                fill="#db9514"
-                stroke="#1a1916"
-                strokeWidth="1"
-              />
-            </svg>
-            <span className="wordmark">beelite</span>
-          </div>
-          <p className="tagline">Commercial flooring · takeoff &amp; estimating</p>
+          <div className="brand-name">Beelite</div>
+          <div className="brand-sub">Commercial flooring estimating</div>
         </div>
-        {action}
-      </div>
-      <div className="dimline" />
+      </Link>
+      {action}
     </header>
   );
 }

@@ -7,8 +7,10 @@ import { uploadDocument } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
 
-function bidDate(d: Date | null) {
-  return d ? d.toISOString().slice(0, 10) : "no date";
+function fmtDate(d: Date | null) {
+  return d
+    ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : "No date set";
 }
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,62 +32,57 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
   return (
     <main className="wrap">
-      <SiteHeader action={<Link href="/" className="btn">← All bids</Link>} />
+      <SiteHeader action={<Link href="/" className="btn">All bids</Link>} />
 
-      <div className="section-label">
-        <span className="eyebrow">Bid</span>
-        <span className="status" data-s={project.status}>{project.status}</span>
-      </div>
-      <h1 className="bid-name" style={{ fontSize: 28 }}>{project.name}</h1>
-      <p className="bid-meta">
-        {project.gc ?? "GC —"}
-        <span className="sep">|</span>
-        {project.location ?? "location —"}
-        <span className="sep">|</span>
-        BID {bidDate(project.bidDate)}
+      <span className="badge" data-s={project.status}>{project.status}</span>
+      <h1 className="detail-title">{project.name}</h1>
+      <p className="detail-meta">
+        {project.gc ?? "No GC"}
+        <span className="dot"> · </span>
+        {project.location ?? "No location"}
+        <span className="dot"> · </span>
+        Bid due {fmtDate(project.bidDate)}
       </p>
 
-      <div className="dimline" />
+      <section className="section">
+        <h2 className="section-title">Plans {docs.length > 0 && `(${docs.length})`}</h2>
 
-      <div className="section-label">
-        <span className="eyebrow">Plans</span>
-        <span className="count">{String(docs.length).padStart(2, "0")} uploaded</span>
-      </div>
-
-      {docs.length > 0 && (
-        <div className="ledger" style={{ marginBottom: 20 }}>
-          {docs.map((d) => (
-            <div key={d.id} className="bid">
-              <div className="bid-main">
-                <div className="bid-name" style={{ fontSize: 15 }}>{d.filename}</div>
-                <div className="bid-meta">
-                  {d.pages.length
-                    ? `${d.pages.length} page${d.pages.length > 1 ? "s" : ""} tagged`
-                    : "not tagged yet"}
+        {docs.length > 0 && (
+          <div className="list" style={{ marginBottom: 20 }}>
+            {docs.map((d) => (
+              <div key={d.id} className="card">
+                <div className="card-main">
+                  <div className="card-title">{d.filename}</div>
+                  <div className="card-meta">
+                    {d.pages.length
+                      ? `${d.pages.length} page${d.pages.length > 1 ? "s" : ""} tagged`
+                      : "Not tagged yet"}
+                  </div>
                 </div>
+                {d.url && (
+                  <a className="btn" href={d.url} target="_blank" rel="noreferrer">
+                    Open
+                  </a>
+                )}
               </div>
-              {d.url && (
-                <a className="status" href={d.url} target="_blank" rel="noreferrer">
-                  open
-                </a>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      <form action={upload} className="form">
-        <div className="field">
-          <label htmlFor="file">Upload a plan (PDF)</label>
-          <input id="file" name="file" type="file" accept="application/pdf" required />
-        </div>
-        <div className="form-actions">
-          <button type="submit" className="btn btn-primary">Upload plan</button>
-        </div>
-      </form>
+        <form action={upload} className="form">
+          <div className="field">
+            <label htmlFor="file">Upload a plan (PDF)</label>
+            <input id="file" name="file" type="file" accept="application/pdf" required />
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary">
+              Upload plan
+            </button>
+          </div>
+        </form>
+      </section>
 
-      <div className="dimline" />
-      <p className="eyebrow">Next: tag the finish-schedule page, then read finishes with AI.</p>
+      <p className="hint">Next: tag the finish-schedule page, then read finishes with AI.</p>
     </main>
   );
 }
