@@ -9,8 +9,8 @@ export type PageScan = {
   suggestedSheetType: string; // finish_schedule | finish_plan | floor_plan | specs | other
 };
 
-const FINISH_CODE = /\b(?:LVT|CPT|VCT|CT|RB|PT|RES|SC|WB|EPX|PC|VWC|WD|QT)-?\d\b/gi;
-const SHEET_NUM = /\b([A-Z]{1,2}-?\d{3}(?:\.\d+)?)\b/g; // A-601, A601, FS-101…
+const FINISH_CODE = /\b(?:LVT|CPT|VCT|CT|RB|PT|RES|SC|WB|EPX|PC|VWC|WD|QT)-?\d{1,2}\b/gi; // LVT-1, CPT-12, RB-01
+const SHEET_NUM = /\b([A-Z]{1,2}-?\d{3}(?:\.\d+)?)\b/g; // A-601, A601, FS-101 (3 digits ≠ finish codes)
 
 /** Score one page's text for "is this a finish schedule?" */
 export function scorePage(pageNumber: number, text: string): PageScan {
@@ -31,8 +31,8 @@ export function scorePage(pageNumber: number, text: string): PageScan {
   if (negative) score *= 0.2; // dampen forms/indexes
   score = Math.max(0, Math.min(1, score));
 
-  // best-effort sheet number + title
-  const sheetNumber = (U.match(SHEET_NUM) || []).find((s) => !FINISH_CODE.test(s)) ?? null;
+  // best-effort sheet number + title (SHEET_NUM needs 3 digits, so it won't match finish codes)
+  const sheetNumber = (U.match(SHEET_NUM) || [])[0] ?? null;
   const m = U.match(/(ROOM\s+)?FINISH\s+(SCHEDULE|LEGEND|MATERIALS|PLAN)/);
   const sheetTitle = m ? m[0].replace(/\s+/g, " ").trim() : null;
 

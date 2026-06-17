@@ -76,9 +76,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
                         : ""}
                   </div>
                 </div>
-                {d.pages.length > 0 && (
-                  <Link className="btn" href={`/projects/${id}/pages`}>Pages</Link>
-                )}
+                <Link className="btn" href={`/projects/${id}/pages?doc=${d.id}`}>Pages</Link>
                 {d.url && (
                   <a className="btn" href={d.url} target="_blank" rel="noreferrer">
                     Open

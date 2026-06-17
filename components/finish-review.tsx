@@ -10,7 +10,7 @@ const CATEGORIES = ["floor", "base", "transition", "wall", "other"];
 const cell: React.CSSProperties = { padding: "8px 10px", borderBottom: "1px solid var(--border)", verticalAlign: "middle" };
 const input: React.CSSProperties = { font: "inherit", fontSize: 14, padding: "6px 8px", border: "1px solid var(--border)", borderRadius: 8, background: "var(--surface)", width: "100%" };
 
-export function FinishReview({ projectId, initial }: { projectId: string; initial: ExtractedFinish[] }) {
+export function FinishReview({ projectId, planSheetId, initial }: { projectId: string; planSheetId: string; initial: ExtractedFinish[] }) {
   const [rows, setRows] = useState<ExtractedFinish[]>(initial);
   const [pending, start] = useTransition();
 
@@ -74,7 +74,7 @@ export function FinishReview({ projectId, initial }: { projectId: string; initia
         <button
           className="btn btn-primary"
           disabled={pending || rows.length === 0}
-          onClick={() => start(() => confirmFinishes(projectId, rows))}
+          onClick={() => start(() => confirmFinishes(projectId, planSheetId, rows))}
         >
           {pending ? "Saving…" : `Confirm ${rows.length} finishes`}
         </button>

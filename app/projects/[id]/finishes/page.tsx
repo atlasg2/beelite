@@ -22,6 +22,11 @@ export default async function FinishesPage({ params }: { params: Promise<{ id: s
   const finishes: ExtractedFinish[] = ext
     ? ((ext.corrected as any)?.finishes ?? (ext.rawOutput as any)?.finishes ?? [])
     : [];
+  // the document that actually has tagged finish-schedule pages (not just documents[0])
+  const taggedDoc = await db.document.findFirst({
+    where: { projectId: id, pages: { some: { sheetType: "finish_schedule" } } },
+    orderBy: { id: "desc" },
+  });
   const firstDoc = project.documents[0];
   const taggedCount = await db.planSheet.count({
     where: { document: { projectId: id }, sheetType: "finish_schedule" },
@@ -44,11 +49,11 @@ export default async function FinishesPage({ params }: { params: Promise<{ id: s
               <p>Upload a plan on the bid page first, then come back to read its finishes.</p>
               <Link href={`/projects/${id}`} className="btn btn-primary">Go to bid</Link>
             </div>
-          ) : taggedCount > 0 ? (
+          ) : taggedDoc ? (
             <div className="empty">
               <h2>Read the finish schedule</h2>
               <p>{taggedCount} page{taggedCount === 1 ? "" : "s"} tagged. Claude will read just those and pull out the finishes.</p>
-              <form action={readSchedule.bind(null, firstDoc.id)}>
+              <form action={readSchedule.bind(null, taggedDoc.id)}>
                 <button type="submit" className="btn btn-primary">Read finishes from {taggedCount} page{taggedCount === 1 ? "" : "s"}</button>
               </form>
             </div>
@@ -66,7 +71,7 @@ export default async function FinishesPage({ params }: { params: Promise<{ id: s
               Edit anything that’s off, then confirm. Flagged rows are low-confidence or out-of-scope.
               {ext.corrected ? " (Previously confirmed — re-confirm to update.)" : ""}
             </p>
-            <FinishReview projectId={id} initial={finishes} />
+            <FinishReview projectId={id} planSheetId={sheet!.id} initial={finishes} />
           </>
         )}
       </section>

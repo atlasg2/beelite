@@ -93,7 +93,9 @@ export async function readSchedule(documentId: string) {
   const subPdf = await extractPages(bytes, pageNums); // just the tagged pages
   const { finishes, model } = await extractFinishSchedule(subPdf.toString("base64"));
 
+  // exactly ONE extraction per document, on the primary (lowest-page) tagged sheet.
   const primary = schedulePages[0];
+  await db.extraction.deleteMany({ where: { planSheet: { documentId, id: { not: primary.id } } } });
   const confidence = finishes.map((f) => ({ code: f.code, confidence: f.confidence }));
   await db.extraction.upsert({
     where: { planSheetId: primary.id },
@@ -105,17 +107,30 @@ export async function readSchedule(documentId: string) {
   redirect(`/projects/${doc.projectId}/finishes`);
 }
 
-// Confirm/correct the reviewed finishes → save ProjectFinish + log the correction.
-export async function confirmFinishes(projectId: string, finishes: ExtractedFinish[]) {
-  const sheet = await db.planSheet.findFirst({
-    where: { document: { projectId }, sheetType: "finish_schedule" },
-    orderBy: { id: "desc" },
-  });
-  if (sheet) {
-    await db.extraction
-      .update({ where: { planSheetId: sheet.id }, data: { corrected: { finishes } } })
-      .catch(() => {});
+/** Rescan an existing document's pages (recovery if upload-time scan failed/changed). Resets tags. */
+export async function rescanDocument(documentId: string) {
+  const doc = await db.document.findUnique({ where: { id: documentId } });
+  if (!doc) return;
+  const bytes = await downloadPlan(doc.fileUrl);
+  const scans = await scanPdf(bytes);
+  await db.planSheet.deleteMany({ where: { documentId } }); // cascades extractions
+  if (scans.length) {
+    await db.planSheet.createMany({
+      data: scans.map((s) => ({
+        documentId, pageNumber: s.pageNumber, sheetNumber: s.sheetNumber, sheetTitle: s.sheetTitle,
+        suggestedSheetType: s.suggestedSheetType, scanScore: s.score, scanSignals: s.signals as object,
+      })),
+    });
   }
+  revalidatePath(`/projects/${doc.projectId}/pages`);
+  revalidatePath(`/projects/${doc.projectId}`);
+}
+
+// Confirm/correct the reviewed finishes → save ProjectFinish + log the correction on the EXACT extraction.
+export async function confirmFinishes(projectId: string, planSheetId: string, finishes: ExtractedFinish[]) {
+  await db.extraction
+    .update({ where: { planSheetId }, data: { corrected: { finishes } } })
+    .catch(() => {});
 
   await db.projectFinish.deleteMany({ where: { projectId } });
   await db.projectFinish.createMany({

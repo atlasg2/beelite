@@ -17,9 +17,20 @@ const TAGS = ["untagged", "finish_schedule", "finish_plan", "floor_plan", "specs
 const cell: React.CSSProperties = { padding: "8px 10px", borderBottom: "1px solid var(--border)", verticalAlign: "middle" };
 
 export function PagesTagger({ projectId, documentId, initial }: { projectId: string; documentId: string; initial: Page[] }) {
-  // pre-fill the dropdown with the scanner's suggestion (convenience); the saved value is the human's confirm
+  // pre-fill only meaningful scanner suggestions (convenience); everything else stays "untagged"
+  // (so saving doesn't silently turn 100 pages into "ignore" or promote weak guesses)
   const [tags, setTags] = useState<Record<string, string>>(() =>
-    Object.fromEntries(initial.map((p) => [p.id, p.sheetType !== "untagged" ? p.sheetType : p.suggestedSheetType ?? "ignore"]))
+    Object.fromEntries(
+      initial.map((p) => {
+        const v =
+          p.sheetType !== "untagged"
+            ? p.sheetType
+            : p.suggestedSheetType && p.suggestedSheetType !== "other"
+              ? p.suggestedSheetType
+              : "untagged";
+        return [p.id, v];
+      })
+    )
   );
   const [preview, setPreview] = useState<number | null>(initial.find((p) => p.suggestedSheetType === "finish_schedule")?.pageNumber ?? null);
   const [savePending, startSave] = useTransition();
