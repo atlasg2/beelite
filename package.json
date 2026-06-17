@@ -10,7 +10,6 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "build:sheet": "tsx scripts/build-sheet-template.ts",
-    "import:nola-permits": "tsx scripts/import-nola-permits.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

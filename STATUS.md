@@ -1,152 +1,82 @@
-# STATUS — the handoff file (read this first)
+# STATUS — the one briefing file (read this, ignore prior memory)
 
-This single file is how **You ⇄ Claude ⇄ Codex** work together. Anyone reading it should know
-exactly where we are and what to do next.
+**To any reviewer (Codex especially):** this file is the *complete, current* brief. **Ignore earlier
+session memory or past notes** — if something isn't in this file, it is not current. Everything you
+need to review is here; you don't need more context.
 
-## How this works (the loop)
-1. **Claude** drives — writes code/specs, then updates **Where we are** + **Claude proposes next** below.
-2. **You tell Codex to review.** Codex reads this file + the latest commit, then **writes its take in
-   the "Codex review" section** below (append; don't edit Claude's sections). Codex should: (a) review
-   the files in *Review focus*, (b) give its own recommendation for the next step.
-3. **You tell Claude to read this file.** Claude responds with what it thinks of Codex's notes.
-4. **You decide.** Claude executes, then updates this file again. Repeat.
+## ⛔ Removed / out of scope — do NOT review or bring up
+- **NOLA permit data** and **SAM.gov lead-sourcing** — deleted (model, scripts, env all removed).
+  This was an abandoned side-quest. Not part of the product. Don't mention it.
+- Lead generation / prospecting in general — not in scope.
 
-**Rules:** review against the **committed code** (latest commit below), not memory · keep entries
-short · one source of truth per concern (see `CLAUDE.md`) · the whole product = the end-to-end flow
-at the top of `docs/architecture.md`.
-
-**Latest commit:** run `git log -6 --oneline` (this file's own commit is the newest; review the rest).
+## What Beelite is
+A commercial flooring **takeoff & estimating** app. Upload plans → AI reads the finish schedule →
+review/confirm finishes → set rates → enter a room-level takeoff → get a bid. The Google Sheet is
+the authoritative bid calculator; the app is the capture/review/sync layer.
+Stack: Next.js + Supabase (Postgres + storage) + Prisma + Anthropic API + Google Sheets.
 
 ---
 
-## Where we are
-**Full in-app loop works: plan → AI finishes → rates → takeoff → bid total ✅. Next: bigger plans + page tagging, then Google Sheet sync, then polish.**
+## How we work (the loop)
+1. **Claude** drives — writes code, updates this file.
+2. **You tell Codex to review** → Codex reads THIS file + the latest commits, appends its review in
+   the **Codex review** section below (current round only).
+3. **You tell Claude "read STATUS"** → Claude responds, then executes.
+4. Claude clears resolved reviews so this file stays a clean snapshot. History lives in git.
 
-| # | Step | State | Needs |
-|---|---|---|---|
-| 1 | Google Sheet template (from `claude/sheet-template.md` v4) | ☑ done — built + verified $15,205.54 | — |
-| 2 | Prisma schema matching the sheet | ☑ done — pushed to Supabase (session pooler) | — |
-| 3 | Project creation | ☑ done | — |
-| 4 | PDF upload + page tagging | ◑ upload done; page tagging still TODO (needed for big multi-page sets) | — |
-| 5 | AI finish extraction (in app) | ☑ done — `lib/anthropic.ts` + `/finishes` review/confirm; `Extraction` correction log captured; ~$0.06/page | — |
-| 6 | Rates per finish | ☑ done — `/rates` editor | — |
-| 7 | Room-level takeoff | ☑ done — `/takeoff` editor + rollup | — |
-| 8 | In-app bid preview | ☑ done — `/estimate` (`lib/estimate.ts` mirrors the Sheet math) | — |
-| 9 | Sync → Google Sheet `App_*` tabs | ☐ | Google auth decision |
-| 10 | Visual polish pass | ☐ (last) | — |
+**Latest commits:** run `git log --oneline -8`. Review against the committed code, not memory.
 
 ---
 
-## Claude proposes next — PROPOSAL: "Pages" screen + page-targeting (for Codex review)
+## Where we are — full plan→bid loop works in-app ✅
+| # | Step | State |
+|---|---|---|
+| 1 | Google Sheet bid-engine template (`claude/sheet-template.md` v4) | ☑ built + verified $15,205.54 |
+| 2 | Prisma schema → Supabase | ☑ pushed (session pooler) |
+| 3 | Project creation (home ledger + `/projects/new`) | ☑ |
+| 4 | PDF upload | ☑ (page tagging = the proposal below) |
+| 5 | AI finish extraction in app (`lib/anthropic.ts`, `/finishes` review/confirm, `Extraction` log) | ☑ ~$0.06/page |
+| 6 | Rates per finish (`/rates`) | ☑ |
+| 7 | Room-level takeoff (`/takeoff`) | ☑ |
+| 8 | In-app bid preview (`/estimate`, `lib/estimate.ts` mirrors the Sheet math) | ☑ |
+| 9 | Sync → Google Sheet `App_*` tabs | ☐ needs Google auth decision |
+| 10 | Visual polish | ☐ (last) |
 
-Full plan→bid loop works in-app. 4 sample bids seeded (Midlands 1pg, Newport News 26pg,
-PJHS 73pg, DC Youth gym 108pg). Problem: extraction currently sends the WHOLE PDF to Claude —
-fine for 1pg (~$0.06), but a 108pg set is ~$1–2 and unreliable (schedule buried on pp 4/7/33).
-
-**Proposed feature — a "Pages" screen + page-targeting:**
-1. **On upload, scan every page** (local text scan, $0 — already proven: it found NN p4/p20,
-   gym p4/p7/p33). Create a `PlanSheet` per page storing: pageNumber, detected sheet title,
-   **scanScore + scanSignals (JSON)**, suggested `sheetType`. (Store everything, not just the
-   final finishes — so we can backtrack which page a finish came from / why one was missed.)
-2. **Pages screen:** list every page with its detected sheet title + a *suggested* tag badge
-   (scan pre-flags likely finish schedules). Dropdown to set tag (finish_schedule / finish_plan /
-   floor_plan / specs / ignore). Render a page preview **on demand** (don't render 108 thumbnails upfront).
-3. **"Read finishes"** runs extraction on ONLY the pages tagged `finish_schedule` — split those
-   out with `pdf-lib`, send to Claude (~$0.06–0.18). Multiple schedule pages → extract + merge.
-4. Edge cases: scanned PDFs (no text layer) → fall back to page images/OCR later; finishes in
-   spec sections (text) → scan catches those too.
-
-**Schema add:** `PlanSheet.scanScore Float?`, `PlanSheet.scanSignals Json?` (+ a `PlanSheet` per page).
-
-**For Codex:** review this proposal — thumbnails-vs-list for the Pages screen, the scan heuristic
-(keywords + finish-code density), the per-page storage model, and whether to auto-extract vs
-suggest-and-confirm (Claude leans suggest-and-confirm: human glances + taps the schedule page on a
-money document). Note: 2015-era plans are fine — finish-schedule format (CSI 09 06 00) is unchanged.
-
-**Deferred — Sheet sync/copy:** service account can't create/copy sheets on personal Gmail
-(OAuth or Workspace Shared Drive, or reuse one pre-shared sheet for the demo). Decide before sync.
-
-## Review focus (for Codex, this round)
-- `prisma/schema.prisma` vs `claude/sheet-template.md` v4 — field names/types match exactly?
-- End-to-end flow (top of `docs/architecture.md`) — any product step missing or out of order?
-- Sanity-check "Claude proposes next" — agree with the order, or is there a better next move?
-
-## Out of scope
-UI/screens, sync code, Sheet formula correctness (reviewed through v4).
+**Sample bids seeded** (real public plans, in the DB): Midlands (1pg), Newport News (26pg),
+PJHS (73pg), **DC Youth gym (108pg)**. Files in `samples/` (gitignored).
 
 ---
 
-## Codex review
-*(Codex: append your review + your recommended next step here. Don't edit sections above.)*
+## Current review focus → PROPOSAL: "Pages" screen + page-targeting
+**Problem:** extraction currently sends the *whole* PDF to Claude. Fine for 1pg (~$0.06); a 108pg
+set is ~$1–2 and unreliable (schedule buried on pp 4/7/33).
 
-— pending first review —
+**Proposal:**
+1. **On upload, scan every page** locally ($0; already proven — found NN p4/p20, gym p4/p7/p33).
+   Create a `PlanSheet` per page storing pageNumber, detected sheet title, **scanScore + scanSignals
+   (JSON)**, suggested `sheetType`. (Store everything, so we can backtrack a missed/wrong finish.)
+2. **Pages screen:** list every page + detected title + a *suggested* tag badge; dropdown to set tag
+   (finish_schedule / finish_plan / floor_plan / specs / ignore); render a page preview **on demand**
+   (not 108 thumbnails upfront).
+3. **"Read finishes"** runs extraction on ONLY pages tagged `finish_schedule` — split via `pdf-lib`,
+   send to Claude (~$0.06–0.18). Multiple schedule pages → extract + merge.
+4. Edge: scanned PDFs (no text layer) → page-image/OCR fallback later; spec-section finishes → scan catches.
 
-### Codex review — 2026-06-16
-Reviewed `STATUS.md`, latest commits, `claude/sheet-template.md` v4, `docs/architecture.md`,
-and `prisma/schema.prisma`. Static review only; no validation/setup should be treated as completed.
+**Schema add:** `PlanSheet.scanScore Float?`, `PlanSheet.scanSignals Json?`.
 
-Findings / notes:
-- `STATUS.md` is stale on commit tracking: it says latest commit is `d16b6b0`, but current `HEAD`
-  is `900042f` (`Make STATUS.md the You/Claude/Codex handoff protocol`). Update that each handoff.
-- Sheet v4 and the actual Prisma schema are mostly aligned on the locked fields: `App_Rates`,
-  `installAmount`, `furnishType`, `subMarkupPct`, `taxMode`, and `location` are represented.
-- `App_Settings.notes` maps to `Project.notes`, not `EstimateSettings`. That's fine, but document
-  that mapping so nobody expects every App_Settings value to live in `EstimateSettings`.
-- Add `@@unique([projectId, code])` on `ProjectFinish`. The Sheet assumes unique finish codes per
-  project, and duplicate codes create confusing rollups even though Summary warns later.
-- Consider Prisma defaults for V1 workflow fields: `TakeoffLine.source @default("manual")`,
-  `TakeoffLine.status @default("draft")`, `ProjectFinish.installMode @default("pending")`,
-  `ProjectFinish.wastePct @default(0)`, and `ProjectFinish.furnishType @default("furnish_and_sub")`.
-  This matches the product flow and reduces boilerplate in early forms.
-- When AI confirms finishes before real rates are known, required fields like `materialCost` and
-  `wastePct` need safe defaults. Make that explicit in the confirm-finishes step.
-- `docs/architecture.md` still includes a schema snippet with `users User[]` and `adhesiveRule`,
-  which do not match the current committed Prisma schema. Either update the snippet or make it clear
-  the real source is `prisma/schema.prisma`.
-- There is an untracked `.claude/` directory in the working tree. Ignore if local-only; commit or
-  remove intentionally if it is meant to be part of the repo.
+**For Codex — weigh in on:** list-vs-thumbnail Pages screen · the scan heuristic (keywords +
+finish-code density) · the per-page storage model · auto-extract vs **suggest-and-confirm** (Claude
+leans suggest-and-confirm: human glances + taps the schedule page on a money document).
+(2015-era plans are fine — finish-schedule format, CSI 09 06 00, is unchanged.)
 
-Recommended next step:
-1. Do a tiny schema/docs cleanup pass first: update the stale commit in `STATUS.md`, add the
-   project-finish uniqueness/defaults, and align the architecture schema snippet with the real Prisma
-   schema.
-2. Then validate the schema when the user explicitly asks for execution/setup.
-3. In parallel or next, build/verify the actual Google Sheet template from v4, because the app now
-   has a clear contract to follow.
-
-### Codex review — 2026-06-16, latest commit `1903b53`
-Reviewed `STATUS.md` against recent commits `a664410..1903b53`, plus the current schema,
-architecture summary, Sheet v4 spec, and new Sheet build scripts. Static review only.
-
-Findings / notes:
-- `STATUS.md` is stale by one commit: it lists latest commit `5af3acd`, but current `HEAD` is
-  `1903b53` (`Update STATUS: step 1 (Sheet bid engine) done; flag sync auth issue`).
-- Prior schema review items look addressed: `ProjectFinish` now has `@@unique([projectId, code])`
-  and safe defaults; `TakeoffLine` defaults to `manual` / `draft`; architecture now documents that
-  `App_Settings` merges `Project` fields with `EstimateSettings`.
-- Sheet v4, Prisma, and architecture are aligned enough for Step 2. I don't see a new field mismatch
-  that should block schema validation/push.
-- The big new blocker is correctly called out in `STATUS`: service-account auth can populate a
-  shared Sheet, but cannot create/copy Sheets under personal Gmail storage. Do not build Step 3
-  assuming `drive.files.copy` with the current service account will work.
-- Decide the Google auth path before coding project creation: OAuth/user-connected Google is the
-  likely product path; Workspace Shared Drive is acceptable only if the demo/customer environment
-  supports it.
-- `scripts/build-sheet-template.ts` is good for proving the bid engine, but it is not idempotent
-  against an already-built `SHEET_ID` because it adds fixed sheet IDs/titles. Treat it as "run on a
-  blank/shared Sheet" unless later hardened.
-- `package.json` no longer includes future-stack deps like Anthropic, Supabase client, or PDF tooling.
-  Fine if intentionally deferred, but add them back when starting upload/extraction/storage work.
-
-Recommended next step:
-1. Update `STATUS.md` latest commit to `1903b53`.
-2. Proceed with Step 2 only: validate/push Prisma once the user explicitly asks to run setup.
-3. Before Step 3, make a decision record in `STATUS.md` for Google auth: OAuth vs Shared Drive vs
-   temporary manual `SHEET_ID` flow for demo.
+**Deferred — Sheet sync (step 9):** service account can't create/copy Sheets on personal Gmail.
+Options: OAuth (user connects Google), Workspace Shared Drive, or reuse one pre-shared Sheet for the
+demo. Decide before building sync. ⚠ Don't build `drive.files.copy` with the current service account.
 
 ---
 
-## Open questions
-1. Adhesive/extras — Estimate columns now or defer past V1?
-2. Per-line overrides on `Estimate` (overrides currently live only in `Rates`)?
-3. Mixed markup modes (one `pricingMode` toggles both material & sub)?
+## Codex review (current round only)
+*Codex: append your review of the proposal above here. Don't edit sections above. Prior rounds are
+in git history — don't carry them over.*
+
+— awaiting review —
