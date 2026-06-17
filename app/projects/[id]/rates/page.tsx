@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { SiteHeader } from "@/components/site-header";
+import { ProjectWorkspace } from "@/components/project-workspace";
 import { RatesEditor } from "@/components/rates-editor";
 
 export const dynamic = "force-dynamic";
@@ -15,12 +15,14 @@ export default async function RatesPage({ params }: { params: Promise<{ id: stri
   if (!project) notFound();
 
   return (
-    <main className="wrap">
-      <SiteHeader action={<Link href={`/projects/${id}`} className="btn">Back to bid</Link>} />
+    <ProjectWorkspace projectId={id} active="rates">
       <div className="page-head">
         <h1 className="page-title">Rates</h1>
+        <span className="page-count">{project.finishes.length} in scope</span>
       </div>
-      <p className="detail-meta">{project.name} · {project.finishes.length} in-scope finishes</p>
+      <p className="detail-meta">
+        Auto-filled from your standard rates — adjust per bid. Anything still missing a price is flagged.
+      </p>
 
       <section className="section">
         {project.finishes.length === 0 ? (
@@ -45,6 +47,6 @@ export default async function RatesPage({ params }: { params: Promise<{ id: stri
           />
         )}
       </section>
-    </main>
+    </ProjectWorkspace>
   );
 }

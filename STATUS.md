@@ -116,11 +116,19 @@ a precise "measured workspace" feel. **Tabular numerals** for every $ and quanti
 data), a confident technical display face, an ink-navy base with ONE sharp sparing accent (e.g. surveyor's
 orange) + warm paper neutrals, hairline structure over heavy cards. One signature element; the rest quiet.
 
-### Phasing
-1. Workspace shell (left-rail stepper + running summary + routing) — the structural win.
-2. Plans viewer (big/zoomable) + sheet-label clarity.
-3. Restyle each stage into the shell; the visual system (type, color, tabular numerals).
+### Phasing (Codex-reviewed; constraints folded in)
+1. **Workspace shell** — built around ONE shared `deriveProjectWorkflow(project)` status helper that the
+   rail stepper AND bid warnings both read (Codex #1, no drift). Rail collapses to a top stepper/drawer on
+   narrow viewports — designed up front (Codex #5). Wrap existing stages without redesigning internals.
+2. **Plans viewer** (big/zoomable) — lazy/virtualized low-res thumbnails, separate from the selected
+   large page, cached; don't eager-render every page (Codex #2). Sheet label = Page N primary,
+   sheet-number as "scanner guess"; don't require a sheet match for classification (Codex #3).
+3. Restyle each stage into the shell; visual system — **tabular numerals globally first, then palette**,
+   shell before paint (Codex). Finishes links to the tagged schedule pages, not per-finish (Codex #4).
 4. Overview dashboard.
+
+**Codex review: accepted, all 5 constraints folded in. Building Phase 1 (thin slice: shell +
+workflow helper + wrap one stage with real blocking counts).**
 
 ## (shipped) V1 FINISHING (scope editor, scanner, dry-run validation)
 Closing out V1. **Codex: review against `git log --oneline -10`.** Findings → `CODEX_REVIEW.md`.

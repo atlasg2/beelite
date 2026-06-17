@@ -1,52 +1,64 @@
-# Codex Review — Company Rate Library
+# Codex Review — UX / IA Redesign Proposal
 
 Reviewed `STATUS.md` against latest committed code:
-`d2d5c82`, `fba67a7`, `5583d84`, `684692f`, `0f0f7d5`, `4ce25ba`, `84273ae`, `2999022`.
-Static review only; no build/tests run.
+`ae264a2`, `a1698a4`, `540a91f`, `09afba4`, `d2d5c82`, `fba67a7`, `5583d84`, `684692f`.
+Static proposal review only; no build/tests run.
 
 ## Findings
 
-1. **"Learn to library" can save incomplete `needs_rate` rows as standard rates.**
-   `pushBidRatesToLibrary` skips only rows where both `installRate <= 0` and `materialUnitCost <= 0`
-   (`app/actions.ts:218-220`). That means it will learn partially priced rows, for example
-   Elite-furnished material with `materialUnitCost = 0` but `installRate > 0`, or owner-furnished rows
-   with `installRate <= 0` if a stale/nonzero material cost is still present. Those rows become company
-   standards and later seed bids as `rateStatus: "seeded"` even though the effective rate is still
-   missing. Use the same effective needs-rate predicate as the bid calculator before publishing to the
-   library: skip unless `(owner_furnishes && installRate > 0)` or
-   `(elite_furnishes && materialUnitCost > 0 && installRate > 0)`.
+1. **The workspace direction is right, but it needs a single workflow/status model first.**
+   The current project page derives local state inline (`hasPlan`, `finishCount`, `hasTakeoff`, bid
+   total) and separately stacks tool sections (`app/projects/[id]/page.tsx:19-33`,
+   `app/projects/[id]/page.tsx:58-149`). The Bid page has its own warning source via `computeBid`.
+   If the redesign adds a left rail, overview dashboard, and stage headers without one shared
+   `deriveProjectWorkflow(project)`/workspace query, the stepper counts will drift from the actual
+   bid warnings. Build the workspace shell around one status object: Plans tagged/read, Finishes
+   confirmed, Rates complete using the same `needsRate` predicate, Takeoff approved/nonempty, Scope
+   set, Bid ready/synced.
 
-2. **Library/rate saves still accept negative pricing inputs.**
-   The client inputs for material, install, waste, and carton have no `min` guards
-   (`components/library-editor.tsx:73-76`, `components/rates-editor.tsx:55-69`), and the server writes
-   those numbers directly into `ProjectFinish` and `RateCatalogEntry` (`app/actions.ts:195-198`,
-   `app/actions.ts:264-265`). A negative material cost, install rate, waste, or carton can be learned
-   into the standard library and then seed future bids with negative cost/sell math. Clamp or reject
-   these fields server-side, and mirror with UI `min="0"`; normalize owner-furnished material cost to
-   `0` before saving.
+2. **Do not implement the Plans thumbnail rail by eagerly calling the existing preview endpoint.**
+   `/api/preview` downloads the whole PDF and renders one page per request (`app/api/preview/route.ts:17-21`);
+   `renderPage` loads the PDF and rasterizes at scale `1.6` (`lib/pdf.ts:76-87`). That is fine for the
+   current one-page-on-click preview, but a thumbnail list for a 108-page plan would hammer storage and
+   PDF rendering if every thumbnail is mounted at once. The viewer should lazy/virtualize thumbnails,
+   render low-res thumbs separately from the selected large page, and cache previews more deliberately.
 
-3. **`saveLibrary` is a destructive full replace without a transaction or validation pass.**
-   The action deletes everything not in the submitted code list before it upserts rows
-   (`app/actions.ts:247-267`). If a later upsert fails, the library can be left partially deleted.
-   Also, rows with duplicate codes silently last-write-win, while all-blank submitted rows produce
-   `codes = []` and delete all existing library rows via the `["__none__"]` sentinel
-   (`app/actions.ts:249-253`). The empty-library delete behavior is acceptable if intentional, but it
-   should be explicit. Validate/normalize all rows first, reject duplicate nonblank codes, then run
-   delete+upserts in a single `$transaction`.
+3. **Fix sheet labels as presentation first; be cautious about tightening scanner rules.**
+   The proposal is correct that Page N should be primary. Current UI still shows the scanner's
+   `sheetNumber` in the main "Sheet" column (`components/pages-tagger.tsx:57-74`), and the scanner
+   just takes the first regex match from page text (`lib/pdf.ts:12-13`, `lib/pdf.ts:40-42`). Make
+   `Page 7`/`Page 33` the stable identifier and label `sheetNumber` as "scanner guess." Tightening the
+   regex can help, but do not make a sheet-number match required for classification; broken fonts and
+   odd plan title blocks are already part of the real sample set.
+
+4. **"Source-page link" on Finishes is not currently a no-data-change UI feature.**
+   `ExtractedFinish` has no per-finish source page field (`lib/anthropic.ts:7-16`). The action stores
+   only the extraction-level `sourcePages` list (`app/actions.ts:131-135`). For this IA pass, either
+   make the Finishes link point to the tagged schedule page set / selected preview, or explicitly add
+   per-finish provenance as a later data/API change. Otherwise the UI will imply precision the data
+   does not have.
+
+5. **The two-pane shell needs a mobile/collapsed mode in the plan, not after the fact.**
+   The current app is centered around a `760px` `.wrap` and several horizontally scrolling tables
+   (`app/globals.css:38-42`, `components/takeoff-editor.tsx`, `components/rates-editor.tsx`). A
+   persistent left rail plus wide stage tables will not naturally fit smaller screens. Define the
+   desktop shell as rail + stage pane, but collapse the rail into a top stepper/summary drawer on
+   narrow viewports before styling each stage.
 
 ## Checks That Look Correct
 
-- Exact company-scoped code matching is implemented for seeding (`confirmFinishes` reads
-  `companyId` and maps `FinishLibraryItem.code`), and no type/category fallback is auto-applied.
-- The re-confirm behavior still preserves existing per-bid rates for unchanged finish codes, so
-  library edits do not retroactively rewrite active bids.
-- Owner-furnished rows with a valid install rate and zero material cost are supported by the current
-  data model.
-- The single-company helper (`getOrCreateDefaultCompany`) is consistent with the current v1 scope.
+- Moving from a flat project detail dump to a guided project workspace addresses the real product
+  problem: users need to know "where am I, what is blocked, what is next."
+- Keeping Standard rates outside the project workspace is correct; it is company-level data, not a
+  bid stage.
+- Putting Scope before Bid in the pipeline is correct now that scope/exclusions feed the proposal
+  sheet assumptions.
+- The visual direction is appropriate for an estimating tool. Implement tabular numerals globally
+  for money/quantity surfaces, then apply the new palette; do not start with paint before the shell.
 
 ## Recommended Next Step
 
-Tighten the save boundary: add one shared rate-normalization/validation helper, use it in
-`saveRates`, `saveLibrary`, and `pushBidRatesToLibrary`, then wrap `saveLibrary`'s full-replace logic
-in a transaction. After that, smoke-test three paths: direct library edit, learn-from-rates with an
-owner-furnished finish, and confirm-finishes seeding from the learned standard.
+Build phase 1 as a thin structural slice: create a shared `ProjectWorkspace` shell plus a central
+workflow-status helper, wrap one existing stage without redesigning its internals, and make the rail
+show real blocking counts from that helper. Once that is stable, build the Plans viewer as the first
+deep stage because it solves the user's most painful current screen.

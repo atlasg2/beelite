@@ -4,6 +4,32 @@ Last checked: 2026-06-17.
 
 This file documents how to use SAM.gov to find public construction bid opportunities and fetch plan/spec attachments for Beelite test data. Do not commit a real SAM API key. Store it in `.env` as `SAM_API_KEY`.
 
+## Bulk import scripts (the practiced path)
+
+Two idempotent scripts turn SAM into a local corpus and then into review-ready bids:
+
+```bash
+npm run sam:fetch     # search → download plan/spec PDFs into data/sam/<soln>/ + manifest.json
+npm run sam:import    # data/sam/ → Project + Document(s) + per-page PlanSheet scan in the DB
+```
+
+- `scripts/sam-fetch.ts` flags: `--naics=238330,238340,236220 --days=180 --max=60 --keyword=flooring`.
+  Searches the keyed API, keeps attachments whose names look like plans/specs (drawings, finish,
+  flooring, spec, SOW…) and drops boilerplate (wage determinations, SF1442, instructions, SDS…).
+  Re-running skips any opportunity folder that already has a `manifest.json`.
+- `scripts/sam-import.ts` reuses a Project by name and skips a PDF already stored, so it is safe to
+  re-run after each fetch. It prints the projects whose pages the scanner flags as `finish_schedule`
+  — the high-signal plans to practice on.
+
+**Daily quota:** non-federal `SAM_API_KEY`s are rate-limited (~10 search calls/day); exceeding it
+returns HTTP 429 with a `nextAccessTime` (resets 00:00 UTC). The fetcher catches this, downloads
+whatever it gathered, and reports the reset time. To get more in one day: list several keys
+(each has its own quota) comma-separated in `SAM_API_KEY` or in `SAM_API_KEYS` — the fetcher rotates
+to the next key on a 429. Also spread large pulls across days, raise `--days` to widen each pull, or
+request a higher-tier key. Attachment downloads use the no-key endpoint and
+are **not** subject to this quota. For higher volume without the keyed quota, the no-key UI search
+endpoint below (`sgs/v1/search`) is the fallback (different response shape — `_id`/`parentNoticeId`).
+
 ## Official API Key
 
 Official docs: https://open.gsa.gov/api/get-opportunities-public-api/

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { SiteHeader } from "@/components/site-header";
+import { ProjectWorkspace } from "@/components/project-workspace";
 import { FinishReview } from "@/components/finish-review";
 import { readSchedule } from "@/app/actions";
 import type { ExtractedFinish } from "@/lib/anthropic";
@@ -33,9 +33,7 @@ export default async function FinishesPage({ params }: { params: Promise<{ id: s
   });
 
   return (
-    <main className="wrap">
-      <SiteHeader action={<Link href={`/projects/${id}`} className="btn">Back to bid</Link>} />
-
+    <ProjectWorkspace projectId={id} active="finishes">
       <div className="page-head">
         <h1 className="page-title">Finishes</h1>
       </div>
@@ -75,6 +73,6 @@ export default async function FinishesPage({ params }: { params: Promise<{ id: s
           </>
         )}
       </section>
-    </main>
+    </ProjectWorkspace>
   );
 }

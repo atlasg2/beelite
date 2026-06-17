@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { SiteHeader } from "@/components/site-header";
+import { ProjectWorkspace } from "@/components/project-workspace";
 import { ScopeEditor } from "@/components/scope-editor";
 
 export const dynamic = "force-dynamic";
@@ -15,12 +14,11 @@ export default async function ScopePage({ params }: { params: Promise<{ id: stri
   if (!project) notFound();
 
   return (
-    <main className="wrap">
-      <SiteHeader action={<Link href={`/projects/${id}`} className="btn">Back to bid</Link>} />
+    <ProjectWorkspace projectId={id} active="scope">
       <div className="page-head">
         <h1 className="page-title">Scope &amp; exclusions</h1>
       </div>
-      <p className="detail-meta">{project.name} — what’s in your number, and what isn’t.</p>
+      <p className="detail-meta">What’s in your number, and what isn’t — these become the proposal’s assumptions.</p>
 
       <section className="section">
         <ScopeEditor
@@ -28,6 +26,6 @@ export default async function ScopePage({ params }: { params: Promise<{ id: stri
           initial={project.scopeItems.map((s) => ({ label: s.label, mode: s.mode, allowance: s.allowance }))}
         />
       </section>
-    </main>
+    </ProjectWorkspace>
   );
 }

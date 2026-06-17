@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { SiteHeader } from "@/components/site-header";
+import { ProjectWorkspace } from "@/components/project-workspace";
 import { TakeoffEditor } from "@/components/takeoff-editor";
 
 export const dynamic = "force-dynamic";
@@ -18,12 +18,11 @@ export default async function TakeoffPage({ params }: { params: Promise<{ id: st
   if (!project) notFound();
 
   return (
-    <main className="wrap">
-      <SiteHeader action={<Link href={`/projects/${id}`} className="btn">Back to bid</Link>} />
+    <ProjectWorkspace projectId={id} active="takeoff">
       <div className="page-head">
         <h1 className="page-title">Takeoff</h1>
       </div>
-      <p className="detail-meta">{project.name} · enter quantities per area, finish from the dropdown</p>
+      <p className="detail-meta">Enter quantities per area; pick the finish from the dropdown. Approved lines feed the bid.</p>
 
       <section className="section">
         {project.finishes.length === 0 ? (
@@ -47,6 +46,6 @@ export default async function TakeoffPage({ params }: { params: Promise<{ id: st
           />
         )}
       </section>
-    </main>
+    </ProjectWorkspace>
   );
 }

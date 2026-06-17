@@ -1,16 +1,23 @@
 :root {
-  --bg: #f5f7f8;
+  /* "Measured worktable" — construction-document precision, not generic SaaS. */
+  --bg: #e9edf0; /* blueprint-print off-white (cool, not cream) */
   --surface: #ffffff;
-  --text: #16202b; /* readable near-black navy */
-  --muted: #5d6a7a;
-  --border: #e5e9ed;
-  --primary: #0f766e; /* calm teal */
-  --primary-hover: #0b5d57;
-  --primary-soft: #e7f3f1;
+  --text: #16263b; /* blueprint navy ink */
+  --muted: #647284;
+  --border: #d7dce1;
+  --primary: #16263b; /* ink navy — primary actions */
+  --primary-hover: #26405f;
+  --primary-soft: #e6eaef;
   --primary-ink: #ffffff;
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.06);
-  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
-  --radius: 12px;
+  --marking: #e0552d; /* surveyor's marking orange — the money + where you are */
+  --marking-hover: #c4441f;
+  --marking-soft: #fbe7df;
+  --blueprint: #2f5d8c; /* measured blue — completed stages */
+  --blueprint-soft: #e6eef6;
+  --shadow-sm: 0 1px 2px rgba(16, 38, 59, 0.05), 0 1px 3px rgba(16, 38, 59, 0.06);
+  --shadow-md: 0 6px 16px rgba(16, 38, 59, 0.09);
+  --radius: 10px;
+  --font-display: var(--font-body); /* headers: Plex Sans, heavy + tight */
 }
 
 * {
@@ -315,3 +322,152 @@ a.card:hover {
     font-size: 24px;
   }
 }
+
+/* ── Tabular numerals — money + quantities read like an instrument ── */
+.mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ── Project workspace shell (rail + stage pane) ── */
+.ws {
+  display: grid;
+  grid-template-columns: 270px 1fr;
+  max-width: 1240px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+.ws-rail {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 26px 22px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.ws-back {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ws-back:hover { color: var(--text); }
+.ws-proj-name {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  font-size: 19px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.ws-proj-meta {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* the pipeline as a dimension line — ticks on a measured rule */
+.rule { position: relative; display: flex; flex-direction: column; }
+.rule::before {
+  content: "";
+  position: absolute;
+  left: 21px;
+  top: 24px;
+  bottom: 24px;
+  width: 1.5px;
+  background: var(--border);
+}
+.rule-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 8px;
+}
+.rule-step:hover { background: var(--bg); }
+.rule-step[aria-current="page"] { background: var(--bg); }
+.rule-tick {
+  z-index: 1;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono), monospace;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.rule-step[data-state="done"] .rule-tick { background: var(--blueprint); border-color: var(--blueprint); color: #fff; }
+.rule-step[data-state="active"] .rule-tick { background: var(--marking); border-color: var(--marking); color: #fff; }
+.rule-step[data-state="blocked"] .rule-tick { background: var(--marking-soft); border-color: var(--marking); color: var(--marking); }
+.rule-label {
+  display: block;
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--text);
+}
+.rule-note { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+.rule-step[data-state="blocked"] .rule-note { color: var(--marking); font-weight: 600; }
+
+/* live bid readout — calculator at the bottom of the rule */
+.ws-readout {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.ws-readout-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+}
+.ws-readout-figure {
+  font-family: var(--font-mono), monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--marking);
+  line-height: 1.1;
+  margin-top: 2px;
+}
+.ws-readout-sub {
+  font-family: var(--font-mono), monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.ws-main {
+  padding: 34px 40px 96px;
+  min-width: 0;
+}
+
+/* rail collapses to a top bar on narrow viewports */
+@media (max-width: 880px) {
+  .ws { grid-template-columns: 1fr; }
+  .ws-rail {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    flex-direction: column;
+    gap: 16px;
+  }
+  .rule { flex-direction: row; overflow-x: auto; gap: 4px; padding-bottom: 4px; }
+  .rule::before { display: none; }
+  .rule-step { flex-direction: column; align-items: flex-start; min-width: 130px; gap: 6px; }
+  .ws-readout { margin-top: 0; }
+  .ws-main { padding: 26px 20px 80px; }
+}
+

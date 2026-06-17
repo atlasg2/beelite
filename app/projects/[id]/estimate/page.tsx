@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { SiteHeader } from "@/components/site-header";
+import { ProjectWorkspace } from "@/components/project-workspace";
 import { computeBid, usd, pct, DEFAULT_SETTINGS } from "@/lib/estimate";
 import { saveSettings } from "@/app/actions";
 import { SyncSheetButton } from "@/components/sync-sheet-button";
@@ -26,12 +26,11 @@ export default async function EstimatePage({ params }: { params: Promise<{ id: s
   const isMargin = s.profitPctMode === "margin";
 
   return (
-    <main className="wrap">
-      <SiteHeader action={<Link href={`/projects/${id}`} className="btn">Back to bid</Link>} />
+    <ProjectWorkspace projectId={id} active="bid">
       <div className="page-head">
-        <h1 className="page-title">Bid preview</h1>
+        <h1 className="page-title">Bid</h1>
       </div>
-      <p className="detail-meta">{project.name}</p>
+      <p className="detail-meta">Cost → profit → price. The Google Sheet stays the source of truth for the math.</p>
 
       {/* the bid statement */}
       <section className="section">
@@ -195,6 +194,6 @@ export default async function EstimatePage({ params }: { params: Promise<{ id: s
           not equal (30% margin ≈ 43% markup). The Google Sheet stays the source of truth for the math.
         </p>
       </section>
-    </main>
+    </ProjectWorkspace>
   );
 }
