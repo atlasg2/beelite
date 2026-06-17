@@ -13,3 +13,6 @@ elite-*.json
 
 # sample plans (third-party PDFs)
 samples/
+
+# local sample previews
+public/samples/

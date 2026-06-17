@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { SiteHeader } from "@/components/site-header";
 import { computeBid, usd, DEFAULT_SETTINGS } from "@/lib/estimate";
 import { saveSettings } from "@/app/actions";
+import { SyncSheetButton } from "@/components/sync-sheet-button";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,9 @@ export default async function EstimatePage({ params }: { params: Promise<{ id: s
             {bid.warnings.map((w, i) => <li key={i} style={{ color: "#b45309" }}>⚠ {w}</li>)}
           </ul>
         )}
+        <div style={{ marginTop: 16 }}>
+          <SyncSheetButton projectId={id} sheetId={project.sheetId} />
+        </div>
       </section>
 
       {/* line breakdown */}

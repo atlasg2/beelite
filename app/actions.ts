@@ -5,6 +5,9 @@ import { getOrCreateDefaultCompany } from "@/lib/company";
 import { uploadPlan, downloadPlan } from "@/lib/storage";
 import { extractFinishSchedule, type ExtractedFinish } from "@/lib/anthropic";
 import { scanPdf, extractPages } from "@/lib/pdf";
+import { getAuthedClient } from "@/lib/google";
+import { createBidSpreadsheet, updateBidData } from "@/lib/sheet-builder";
+import { google } from "googleapis";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -230,5 +233,64 @@ export async function saveSettings(projectId: string, formData: FormData) {
   });
   revalidatePath(`/projects/${projectId}/estimate`);
   redirect(`/projects/${projectId}/estimate`);
+}
+
+/**
+ * Push a bid into Google Sheets: first sync creates a fresh Bid Engine sheet in the connected
+ * user's Drive and saves its id; later syncs re-push the inputs into that same sheet. Returns the
+ * sheet URL (and a status) so the estimate page can show a "Open in Sheets" link.
+ */
+export async function syncBidToSheet(
+  projectId: string
+): Promise<{ ok: boolean; url?: string; created?: boolean; error?: string }> {
+  const authClient = await getAuthedClient();
+  if (!authClient) return { ok: false, error: "Google isn't connected. Connect it from the home page." };
+
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    include: {
+      finishes: { orderBy: { code: "asc" } },
+      takeoff: { orderBy: { area: "asc" } },
+      scopeItems: { orderBy: { label: "asc" } },
+      settings: true,
+    },
+  });
+  if (!project) return { ok: false, error: "Bid not found." };
+
+  const sheets = google.sheets({ version: "v4", auth: authClient });
+  const bid = {
+    name: project.name,
+    gc: project.gc,
+    location: project.location,
+    bidDate: project.bidDate,
+    notes: project.notes,
+    finishes: project.finishes,
+    takeoff: project.takeoff,
+    scopeItems: project.scopeItems,
+    settings: project.settings,
+  };
+
+  try {
+    // Re-use the bid's sheet if it still exists; otherwise create a fresh one.
+    if (project.sheetId) {
+      try {
+        await updateBidData(sheets, project.sheetId, bid);
+        const url = `https://docs.google.com/spreadsheets/d/${project.sheetId}/edit`;
+        revalidatePath(`/projects/${projectId}/estimate`);
+        return { ok: true, url, created: false };
+      } catch (e) {
+        // Sheet was deleted/inaccessible — fall through and make a new one.
+        console.warn("update existing sheet failed, recreating:", e);
+      }
+    }
+
+    const { spreadsheetId, url } = await createBidSpreadsheet(sheets, bid);
+    await db.project.update({ where: { id: projectId }, data: { sheetId: spreadsheetId } });
+    revalidatePath(`/projects/${projectId}/estimate`);
+    return { ok: true, url, created: true };
+  } catch (e) {
+    console.error("syncBidToSheet failed:", e);
+    return { ok: false, error: "Couldn't sync to Google Sheets. Try reconnecting Google." };
+  }
 }
 

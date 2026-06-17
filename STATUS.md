@@ -43,7 +43,8 @@ Stack: Next.js + Supabase (Postgres + storage) + Prisma + Anthropic API + Google
 | 6 | Rates per finish (`/rates`) | ☑ |
 | 7 | Room-level takeoff (`/takeoff`) | ☑ |
 | 8 | In-app bid preview (`/estimate`, `lib/estimate.ts` mirrors the Sheet math) | ☑ |
-| 9 | Sync → Google Sheet `App_*` tabs | ☐ needs Google auth decision |
+| 9 | Google OAuth connect (`GoogleConnection`, `/api/auth/google[/callback]`, home status card) | ☑ connected |
+| 9b | **Sync → Google Sheet** — creates a fresh Bid Engine sheet per bid in the user's Drive + re-sync | ☑ verified $15,205.54 via OAuth create |
 | 10 | Visual polish | ☐ (last) |
 
 **Sample bids seeded** (real public plans, in the DB): Midlands (1pg), Newport News (26pg),
@@ -63,13 +64,28 @@ document, stale cleared) · #2 multi-document routing (explicit `?doc=`) · #3 t
 (non-suggestions stay untagged) · #5 rescan action + buttons · #6 finish-code regex (1–2 digits) +
 a stateful-regex bug. Deferred: #4 preview caching (fine for demo).
 
-## Current review focus → none pending
+## Recently shipped — Google Sheet sync (Phase 2)
+Chose **OAuth** (user connects their Google; `drive.file` scope) over service account — a SA on
+personal Gmail has zero Drive quota and can't create files. Flow: `/estimate` → "Sync to Google
+Sheet" (`SyncSheetButton`) → `syncBidToSheet` action → `getAuthedClient()` → `createBidSpreadsheet()`
+in `lib/sheet-builder.ts` builds a fresh 9-tab Bid Engine sheet in the user's Drive, pushes the bid's
+inputs into the hidden `App_*` tabs, saves `project.sheetId`. Re-sync → `updateBidData()` (clears +
+rewrites `App_*`, formula tabs untouched). `lib/sheet-builder.ts` is the verified template structure
+(`scripts/build-sheet-template.ts`) refactored into reusable create/update fns — **same formulas**.
+Proven end-to-end: `tsx --env-file=.env scripts/test-sync.ts` created a real sheet via OAuth and read
+back **$15,205.54** (then deleted it).
+
+## Current review focus → Phase 2 Google Sheet sync
+Review `lib/sheet-builder.ts`, `syncBidToSheet` in `app/actions.ts`, `components/sync-sheet-button.tsx`,
+and `lib/google.ts` against `git log --oneline -8`. Things worth a look: (a) single-row
+`GoogleConnection` model — fine for one-user demo, but is the "reuse if `sheetId` exists, else
+recreate" logic in `syncBidToSheet` sound (e.g. sheet trashed vs. permission revoked)? (b) `App_*`
+clear-then-write in `updateBidData` — any race / partial-write risk? (c) settings row-order coupling
+(`App_Settings` rows must match the named range + Estimate `$B$N` refs).
 
 ## Next (no review needed)
-- **Step 9 — Google Sheet sync.** Auth choice first: service account can't create/copy Sheets on
-  personal Gmail. Options: OAuth · Workspace Shared Drive · reuse one pre-shared Sheet for the demo.
-  ⚠ Don't build `drive.files.copy` with the current service account.
 - **Step 10 — visual polish** (last).
+- Later: Workspace Shared Drive as the production path once Google verification finishes.
 
 ---
 
