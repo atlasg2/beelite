@@ -52,6 +52,35 @@ export function scorePage(pageNumber: number, text: string): PageScan {
   };
 }
 
+/** Build a new PDF containing only the given 1-based page numbers (for targeted extraction). */
+export async function extractPages(bytes: Buffer, pageNumbers: number[]): Promise<Buffer> {
+  const { PDFDocument } = await import("pdf-lib");
+  const src = await PDFDocument.load(bytes);
+  const out = await PDFDocument.create();
+  const idxs = [...new Set(pageNumbers)]
+    .map((n) => n - 1)
+    .filter((i) => i >= 0 && i < src.getPageCount())
+    .sort((a, b) => a - b);
+  const copied = await out.copyPages(src, idxs);
+  copied.forEach((p) => out.addPage(p));
+  return Buffer.from(await out.save());
+}
+
+/** Render one page to a PNG (for on-demand preview). */
+export async function renderPage(bytes: Buffer, pageNumber: number, scale = 1.5): Promise<Buffer> {
+  const { createCanvas } = await import("@napi-rs/canvas");
+  const doc = await getDocument({ data: new Uint8Array(bytes), useSystemFonts: true }).promise;
+  const page = await doc.getPage(pageNumber);
+  const viewport = page.getViewport({ scale });
+  const canvas = createCanvas(Math.ceil(viewport.width), Math.ceil(viewport.height));
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await page.render({ canvasContext: ctx as any, viewport, canvas: canvas as any }).promise;
+  return canvas.toBuffer("image/png");
+}
+
 /** Extract each page's text and score it. */
 export async function scanPdf(bytes: Buffer): Promise<PageScan[]> {
   const doc = await getDocument({ data: new Uint8Array(bytes), useSystemFonts: true }).promise;

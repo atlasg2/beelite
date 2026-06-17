@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // native/worker-ish PDF deps — don't bundle, load at runtime on the server
+  serverExternalPackages: ["pdfjs-dist", "@napi-rs/canvas", "pdf-lib"],
   experimental: {
     serverActions: {
       // Server Actions are origin-checked (CSRF). Allow the Codespaces forwarded host.

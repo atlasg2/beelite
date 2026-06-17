@@ -14,8 +14,8 @@ export default async function FinishesPage({ params }: { params: Promise<{ id: s
   if (!project) notFound();
 
   const sheet = await db.planSheet.findFirst({
-    where: { document: { projectId: id }, sheetType: "finish_schedule" },
-    orderBy: { id: "desc" },
+    where: { document: { projectId: id }, extraction: { isNot: null } },
+    orderBy: { pageNumber: "asc" },
     include: { extraction: true },
   });
   const ext = sheet?.extraction;
@@ -23,6 +23,9 @@ export default async function FinishesPage({ params }: { params: Promise<{ id: s
     ? ((ext.corrected as any)?.finishes ?? (ext.rawOutput as any)?.finishes ?? [])
     : [];
   const firstDoc = project.documents[0];
+  const taggedCount = await db.planSheet.count({
+    where: { document: { projectId: id }, sheetType: "finish_schedule" },
+  });
 
   return (
     <main className="wrap">
@@ -35,19 +38,25 @@ export default async function FinishesPage({ params }: { params: Promise<{ id: s
 
       <section className="section">
         {!ext ? (
-          firstDoc ? (
-            <div className="empty">
-              <h2>Read the finish schedule</h2>
-              <p>Claude will read your uploaded plan and pull out the finish codes for you to confirm.</p>
-              <form action={readSchedule.bind(null, firstDoc.id)}>
-                <button type="submit" className="btn btn-primary">Read finish schedule with AI</button>
-              </form>
-            </div>
-          ) : (
+          !firstDoc ? (
             <div className="empty">
               <h2>No plan uploaded</h2>
               <p>Upload a plan on the bid page first, then come back to read its finishes.</p>
               <Link href={`/projects/${id}`} className="btn btn-primary">Go to bid</Link>
+            </div>
+          ) : taggedCount > 0 ? (
+            <div className="empty">
+              <h2>Read the finish schedule</h2>
+              <p>{taggedCount} page{taggedCount === 1 ? "" : "s"} tagged. Claude will read just those and pull out the finishes.</p>
+              <form action={readSchedule.bind(null, firstDoc.id)}>
+                <button type="submit" className="btn btn-primary">Read finishes from {taggedCount} page{taggedCount === 1 ? "" : "s"}</button>
+              </form>
+            </div>
+          ) : (
+            <div className="empty">
+              <h2>Tag the finish-schedule page first</h2>
+              <p>On a real plan set, the finish schedule is one of many pages. Open Pages, confirm which page(s) hold the finish schedule, then read.</p>
+              <Link href={`/projects/${id}/pages`} className="btn btn-primary">Open Pages</Link>
             </div>
           )
         ) : (

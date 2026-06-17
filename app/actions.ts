@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { getOrCreateDefaultCompany } from "@/lib/company";
 import { uploadPlan, downloadPlan } from "@/lib/storage";
 import { extractFinishSchedule, type ExtractedFinish } from "@/lib/anthropic";
-import { scanPdf } from "@/lib/pdf";
+import { scanPdf, extractPages } from "@/lib/pdf";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -69,26 +69,36 @@ export async function uploadDocument(projectId: string, formData: FormData) {
   revalidatePath(`/projects/${projectId}`);
 }
 
-// Read a plan's finish schedule with AI → store raw output → go review it.
+// Save the human-confirmed page tags from the Pages screen. Stays on the page.
+export async function saveSheetTags(projectId: string, tags: { id: string; sheetType: string }[]) {
+  await Promise.all(
+    tags.map((t) => db.planSheet.update({ where: { id: t.id }, data: { sheetType: t.sheetType } }))
+  );
+  revalidatePath(`/projects/${projectId}/pages`);
+  revalidatePath(`/projects/${projectId}`);
+}
+
+// Read finishes from ONLY the pages tagged finish_schedule (targeted extraction).
 export async function readSchedule(documentId: string) {
-  const doc = await db.document.findUnique({ where: { id: documentId } });
+  const doc = await db.document.findUnique({ where: { id: documentId }, include: { pages: true } });
   if (!doc) return;
 
+  const schedulePages = doc.pages
+    .filter((p) => p.sheetType === "finish_schedule")
+    .sort((a, b) => a.pageNumber - b.pageNumber);
+  if (!schedulePages.length) return; // nothing tagged — UI guides the user to tag first
+
+  const pageNums = schedulePages.map((p) => p.pageNumber);
   const bytes = await downloadPlan(doc.fileUrl);
-  const { finishes, model } = await extractFinishSchedule(bytes.toString("base64"));
+  const subPdf = await extractPages(bytes, pageNums); // just the tagged pages
+  const { finishes, model } = await extractFinishSchedule(subPdf.toString("base64"));
 
-  // one finish-schedule marker per document (page-level tagging is V2)
-  const sheet =
-    (await db.planSheet.findFirst({ where: { documentId, sheetType: "finish_schedule" } })) ??
-    (await db.planSheet.create({
-      data: { documentId, pageNumber: 1, sheetType: "finish_schedule" },
-    }));
-
+  const primary = schedulePages[0];
   const confidence = finishes.map((f) => ({ code: f.code, confidence: f.confidence }));
   await db.extraction.upsert({
-    where: { planSheetId: sheet.id },
-    create: { planSheetId: sheet.id, model, rawOutput: { finishes }, confidence },
-    update: { model, rawOutput: { finishes }, confidence, corrected: undefined },
+    where: { planSheetId: primary.id },
+    create: { planSheetId: primary.id, model, rawOutput: { finishes, sourcePages: pageNums }, confidence },
+    update: { model, rawOutput: { finishes, sourcePages: pageNums }, confidence, corrected: undefined },
   });
 
   revalidatePath(`/projects/${doc.projectId}/finishes`);

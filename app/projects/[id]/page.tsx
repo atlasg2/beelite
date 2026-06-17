@@ -60,23 +60,33 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
         {docs.length > 0 && (
           <div className="list" style={{ marginBottom: 20 }}>
-            {docs.map((d) => (
+            {docs.map((d) => {
+              const suggested = d.pages.filter((p) => p.suggestedSheetType === "finish_schedule").length;
+              const confirmed = d.pages.filter((p) => p.sheetType === "finish_schedule").length;
+              return (
               <div key={d.id} className="card">
                 <div className="card-main">
                   <div className="card-title">{d.filename}</div>
                   <div className="card-meta">
-                    {d.pages.length
-                      ? `${d.pages.length} page${d.pages.length > 1 ? "s" : ""} tagged`
-                      : "Not tagged yet"}
+                    {d.pages.length ? `${d.pages.length} pages` : "scanning…"}
+                    {confirmed > 0
+                      ? ` · ${confirmed} tagged finish schedule`
+                      : suggested > 0
+                        ? ` · ${suggested} look like finish schedules`
+                        : ""}
                   </div>
                 </div>
+                {d.pages.length > 0 && (
+                  <Link className="btn" href={`/projects/${id}/pages`}>Pages</Link>
+                )}
                 {d.url && (
                   <a className="btn" href={d.url} target="_blank" rel="noreferrer">
                     Open
                   </a>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
