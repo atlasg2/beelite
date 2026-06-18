@@ -46,7 +46,8 @@ const FINISH_SCHEMA = {
 } as const;
 
 function client() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  // Bounded timeout so a stalled read fails loudly instead of hanging the /finishes button.
+  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: 90_000, maxRetries: 1 });
 }
 
 /** Hand the PDF (a finish-schedule page) to Claude; get back structured finishes. */

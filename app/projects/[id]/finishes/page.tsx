@@ -8,8 +8,22 @@ import type { ExtractedFinish } from "@/lib/anthropic";
 
 export const dynamic = "force-dynamic";
 
-export default async function FinishesPage({ params }: { params: Promise<{ id: string }> }) {
+const ERR_MESSAGES: Record<string, string> = {
+  untagged: "No finish-schedule page is tagged yet. Open Pages and tag the schedule page(s) first.",
+  not_ingested: "These pages haven't been processed yet (ingest hasn't run on them). Process the plan, then read.",
+  read_failed: "The read failed (timed out or errored). Try again — if it keeps failing, check the server logs.",
+};
+
+export default async function FinishesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ err?: string }>;
+}) {
   const { id } = await params;
+  const { err } = await searchParams;
+  const errMessage = err ? (ERR_MESSAGES[err] ?? "Something went wrong reading the finishes.") : null;
   const project = await db.project.findUnique({ where: { id }, include: { documents: true } });
   if (!project) notFound();
 
@@ -39,6 +53,12 @@ export default async function FinishesPage({ params }: { params: Promise<{ id: s
       </div>
       <p className="detail-meta">{project.name}</p>
 
+      {errMessage && (
+        <div className="banner banner-error" role="alert" style={{ margin: "12px 0", padding: "10px 14px", border: "1px solid var(--marking, #c0392b)", borderRadius: 6, background: "rgba(192,57,43,0.06)", color: "var(--marking, #c0392b)" }}>
+          {errMessage}
+        </div>
+      )}
+
       <section className="section">
         {!ext ? (
           !firstDoc ? (
@@ -62,6 +82,23 @@ export default async function FinishesPage({ params }: { params: Promise<{ id: s
               <Link href={`/projects/${id}/pages`} className="btn btn-primary">Open Pages</Link>
             </div>
           )
+        ) : finishes.length === 0 ? (
+          <div className="empty">
+            <h2>No finishes found on the tagged page(s)</h2>
+            <p>
+              Claude read the tagged page{taggedCount === 1 ? "" : "s"} but found no finish-schedule
+              entries. That can be correct (some sheets are notes or plans, not a schedule) — or the
+              wrong page is tagged. Re-check Pages, or read again.
+            </p>
+            <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+              <Link href={`/projects/${id}/pages`} className="btn">Open Pages</Link>
+              {taggedDoc && (
+                <form action={readSchedule.bind(null, taggedDoc.id)}>
+                  <button type="submit" className="btn btn-primary">Read again</button>
+                </form>
+              )}
+            </div>
+          </div>
         ) : (
           <>
             <h2 className="section-title">Review the finishes Claude found ({finishes.length})</h2>

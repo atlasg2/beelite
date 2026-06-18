@@ -111,51 +111,61 @@ export async function saveSheetTags(projectId: string, tags: { id: string; sheet
   revalidatePath(`/projects/${projectId}`);
 }
 
-// Read finishes from ONLY the pages tagged finish_schedule (targeted extraction).
+// Read finishes from ONLY the pages tagged finish_schedule, using each page's small stored artifact
+// (image preferred, text fallback) — never the whole PDF. Fails loudly to /finishes?err=… instead of
+// hanging or silently resetting; a zero-finish read is saved as an explicit empty extraction.
 export async function readSchedule(documentId: string) {
   const doc = await db.document.findUnique({ where: { id: documentId }, include: { pages: true } });
   if (!doc) return;
+  const projectId = doc.projectId;
 
   const schedulePages = doc.pages
     .filter((p) => p.sheetType === "finish_schedule")
     .sort((a, b) => a.pageNumber - b.pageNumber);
-  if (!schedulePages.length) return; // nothing tagged — UI guides the user to tag first
+  if (!schedulePages.length) redirect(`/projects/${projectId}/finishes?err=untagged`);
 
   const pageNums = schedulePages.map((p) => p.pageNumber);
+  let errCode: string | null = null;
 
-  // v2 read: send ONLY the tagged pages' small stored artifacts (image preferred, text fallback) —
-  // no whole-PDF download. Requires the page to have been ingested.
-  const pageInputs = await Promise.all(
-    schedulePages.map(async (pg) => {
-      const art = readPageArtifact(pg.scanSignals);
-      let imageB64: string | null = null;
-      if (art?.imagePath) {
-        try {
-          imageB64 = (await downloadPlan(art.imagePath)).toString("base64");
-        } catch {
-          imageB64 = null;
+  try {
+    const pageInputs = await Promise.all(
+      schedulePages.map(async (pg) => {
+        const art = readPageArtifact(pg.scanSignals);
+        let imageB64: string | null = null;
+        if (art?.imagePath) {
+          try {
+            imageB64 = (await downloadPlan(art.imagePath)).toString("base64");
+          } catch {
+            imageB64 = null;
+          }
         }
-      }
-      return { imageB64, text: art?.text ?? null };
-    })
-  );
-  if (!pageInputs.some((p) => p.imageB64 || p.text)) {
-    throw new Error("tagged pages are not ingested yet — run ingest on this document first");
+        return { imageB64, text: art?.text ?? null };
+      })
+    );
+
+    if (!pageInputs.some((p) => p.imageB64 || p.text)) {
+      errCode = "not_ingested"; // tagged pages haven't been ingested into per-page artifacts yet
+    } else {
+      const { finishes, model } = await extractFinishesFromPages(pageInputs);
+      // exactly ONE extraction per document, on the primary (lowest-page) tagged sheet.
+      // Saved even when finishes is empty → an explicit "read ran, found nothing" result.
+      const primary = schedulePages[0];
+      await db.extraction.deleteMany({ where: { planSheet: { documentId, id: { not: primary.id } } } });
+      const confidence = finishes.map((f) => ({ code: f.code, confidence: f.confidence }));
+      await db.extraction.upsert({
+        where: { planSheetId: primary.id },
+        create: { planSheetId: primary.id, model, rawOutput: { finishes, sourcePages: pageNums }, confidence },
+        update: { model, rawOutput: { finishes, sourcePages: pageNums }, confidence, corrected: undefined },
+      });
+    }
+  } catch (e) {
+    console.error("[readSchedule] failed:", e);
+    errCode = "read_failed";
   }
-  const { finishes, model } = await extractFinishesFromPages(pageInputs);
 
-  // exactly ONE extraction per document, on the primary (lowest-page) tagged sheet.
-  const primary = schedulePages[0];
-  await db.extraction.deleteMany({ where: { planSheet: { documentId, id: { not: primary.id } } } });
-  const confidence = finishes.map((f) => ({ code: f.code, confidence: f.confidence }));
-  await db.extraction.upsert({
-    where: { planSheetId: primary.id },
-    create: { planSheetId: primary.id, model, rawOutput: { finishes, sourcePages: pageNums }, confidence },
-    update: { model, rawOutput: { finishes, sourcePages: pageNums }, confidence, corrected: undefined },
-  });
-
-  revalidatePath(`/projects/${doc.projectId}/finishes`);
-  redirect(`/projects/${doc.projectId}/finishes`);
+  if (errCode) redirect(`/projects/${projectId}/finishes?err=${errCode}`);
+  revalidatePath(`/projects/${projectId}/finishes`);
+  redirect(`/projects/${projectId}/finishes`);
 }
 
 /** Rescan an existing document's pages (recovery if upload-time scan failed/changed). Resets tags. */
@@ -180,9 +190,9 @@ export async function rescanDocument(documentId: string) {
 // Confirm/correct the reviewed finishes → save ProjectFinish + log the correction on the EXACT extraction.
 // Seeds each finish's rate from the company library (exact code match) → "the ceiling"; no match = needs_rate.
 export async function confirmFinishes(projectId: string, planSheetId: string, finishes: ExtractedFinish[]) {
-  await db.extraction
-    .update({ where: { planSheetId }, data: { corrected: { finishes } } })
-    .catch(() => {});
+  // The correction log is the data engine — NEVER swallow this write. If it fails, fail loudly
+  // so the human's fix is never silently lost.
+  await db.extraction.update({ where: { planSheetId }, data: { corrected: { finishes } } });
 
   const project = await db.project.findUnique({ where: { id: projectId }, select: { companyId: true } });
   const lib = project
