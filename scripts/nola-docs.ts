@@ -30,8 +30,13 @@ const ROOT = join(process.cwd(), "data", "nola");
 const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36";
 
 // Keep drawing/plan PDFs; drop the paperwork (permits, receipts, contracts, approvals, etc.).
-const KEEP = /\b(drawing|drawings|plan|plans|arch|architect|mep|floor|structural|elev|detail|schedule|cd)\b|a-?\d/i;
+// NOTE: names are normalized (underscores → spaces) before testing, so "WELLONS_CD SET" matches \bcd\b.
+// (RCC) is the city's plan-review stamp on the filename — the single most reliable "this is a
+// reviewed drawing set" signal; almost nothing but real plans carries it.
+const KEEP = /\b(rcc|drawing|drawings|plan|plans|arch|architect|mep|floor|structural|elev|detail|schedule|cd|cd ?set|construction doc\w*|submittal|permit set|bid ?set|interiors?|filing|sealed|stamped|schematic)\b|a-?\d/i;
 const DROP = /\b(receipt|building permit|contract|act of sale|articles|approval|license|authoriz|classification|fire marshal|insurance|invoice|affidavit|recorded|organization)\b/i;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const THROTTLE_MS = 1200; // polite gap between permits (portal 429s under fast bursts)
 
 function arg(name: string, fallback: string): string {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -77,16 +82,37 @@ function parseDocs(html: string): Omit<Doc, "kept">[] {
   return out;
 }
 
+/** Thrown when the portal signals a long cooldown — stop the run rather than sleep/hammer. */
+class Cooldown extends Error {
+  constructor(public secs: number) {
+    super(`portal cooldown ${secs}s`);
+  }
+}
+
+/** GET with backoff on HTTP 429. Caps each wait at 60s; bails the whole run on a long cooldown. */
+async function getWithRetry(url: string, tries = 4): Promise<Response | null> {
+  for (let i = 0; i < tries; i++) {
+    const res = await fetch(url, { headers: { "User-Agent": UA } });
+    if (res.status !== 429) return res;
+    const ra = Number(res.headers.get("retry-after")) || 0; // seconds
+    if (ra > 120) throw new Cooldown(ra); // hard cooldown (e.g. 3600s) — don't block/hammer, stop
+    const wait = Math.min(ra * 1000 || 4000 * 2 ** i, 60_000); // cap 60s
+    console.log(`     · 429 — backing off ${Math.round(wait / 1000)}s`);
+    await sleep(wait);
+  }
+  return null;
+}
+
 async function fetchText(url: string): Promise<string> {
-  const res = await fetch(url, { headers: { "User-Agent": UA } });
-  if (!res.ok) throw new Error(`GET ${url} → HTTP ${res.status}`);
+  const res = await getWithRetry(url);
+  if (!res || !res.ok) throw new Error(`GET ${url} → HTTP ${res?.status ?? "retry-exhausted"}`);
   return res.text();
 }
 
 /** Download a document by DocID. Returns the buffer, or null if it isn't a PDF. */
 async function fetchDoc(docId: string): Promise<Buffer | null> {
-  const res = await fetch(`${HOST}/GetDocument.aspx?DocID=${docId}`, { headers: { "User-Agent": UA } });
-  if (!res.ok) return null;
+  const res = await getWithRetry(`${HOST}/GetDocument.aspx?DocID=${docId}`);
+  if (!res || !res.ok) return null;
   const buf = Buffer.from(await res.arrayBuffer());
   // Their Content-Type is the buggy "application/application/pdf"; trust the magic bytes instead.
   return buf.subarray(0, 5).toString("latin1") === "%PDF-" ? buf : null;
@@ -96,20 +122,28 @@ async function main() {
   const keepMode = arg("keep", "plans"); // plans | all
   const max = Number(arg("max", "0")) || Infinity;
   const force = hasFlag("force");
+  const listOnly = hasFlag("list"); // inventory the doc list only, download nothing (cheap / portal-gentle)
   const permitArg = arg("permit", "");
+  const permitsArg = arg("permits", ""); // comma-separated PermitNums
   const status = arg("status", "saved");
 
-  const permits = permitArg
-    ? await db.nolaPermit.findMany({ where: { permitNum: permitArg } })
+  const permitList = permitsArg
+    ? permitsArg.split(",").map((s) => s.trim()).filter(Boolean)
+    : permitArg
+      ? [permitArg]
+      : [];
+  const permits = permitList.length
+    ? await db.nolaPermit.findMany({ where: { permitNum: { in: permitList } } })
     : await db.nolaPermit.findMany({
         where: status === "all" ? {} : { leadStatus: status },
         orderBy: { issueDate: { sort: "desc", nulls: "last" } },
       });
 
   console.log(
-    `NOLA docs · ${permitArg ? `permit ${permitArg}` : `status="${status}"`} · keep=${keepMode}` +
+    `NOLA docs · ${permitList.length ? `${permitList.length} permit(s)` : `status="${status}"`} · keep=${keepMode}` +
+      (listOnly ? " · LIST-ONLY (no downloads)" : "") +
       (max !== Infinity ? ` · max ${max}` : "") +
-      ` · ${permits.length} candidate permit(s)`,
+      ` · ${permits.length} found`,
   );
   mkdirSync(ROOT, { recursive: true });
 
@@ -134,23 +168,29 @@ async function main() {
 
     let docs: Omit<Doc, "kept">[] = [];
     try {
+      await sleep(THROTTLE_MS); // polite gap between permits
       const html = await fetchText(`${HOST}/PrmtView.aspx?ref=${ref}`);
       docs = parseDocs(html);
     } catch (e) {
+      if (e instanceof Cooldown) {
+        console.log(`  ⛔ portal cooldown (${e.secs}s) — stopping. Re-run later to continue.`);
+        break;
+      }
       console.log(`  ⚠ ${p.permitNum}: ${(e as Error).message}`);
       skipped++;
       continue;
     }
 
-    const classified: Doc[] = docs.map((d) => ({
-      ...d,
-      kept: keepMode === "all" ? true : KEEP.test(d.name) && !DROP.test(d.name),
-    }));
-    const toGet = classified.filter((d) => d.kept);
+    const classified: Doc[] = docs.map((d) => {
+      const norm = d.name.replace(/_+/g, " "); // "WELLONS_CD SET" → "WELLONS CD SET" so \bcd\b matches
+      return { ...d, kept: keepMode === "all" ? true : KEEP.test(norm) && !DROP.test(norm) };
+    });
+    const toGet = listOnly ? [] : classified.filter((d) => d.kept); // list mode: inventory only
 
     mkdirSync(dir, { recursive: true });
     const used = new Set<string>();
     for (const d of toGet) {
+      await sleep(600); // gap between file downloads (back-to-back big PDFs trip the limit)
       const buf = await fetchDoc(d.docId).catch(() => null);
       if (!buf) {
         console.log(`     · ${d.docId} ${d.name.slice(0, 50)} — not a PDF / failed`);
@@ -176,14 +216,16 @@ async function main() {
       portal: `${HOST}/PrmtView.aspx?ref=${ref}`,
       scrapedKeep: keepMode,
       docCount: classified.length,
-      keptCount: toGet.length,
+      keptCount: classified.filter((d) => d.kept).length,
       documents: classified, // ALL docs, kept + skipped, with DocIDs so any can be pulled later
     };
     writeFileSync(join(dir, "manifest.json"), JSON.stringify(manifest, null, 2));
     done++;
-    const kept = classified.filter((d) => d.saved).length;
+    const planLikely = classified.filter((d) => d.kept).length;
+    const savedN = classified.filter((d) => d.saved).length;
     console.log(
-      `  [${done}] ${p.permitNum} · ${classified.length} docs, ${kept} plan PDF(s) saved · ${p.description?.slice(0, 48) ?? ""}`,
+      `  [${done}] ${p.permitNum} · ${classified.length} docs, ` +
+        `${listOnly ? `${planLikely} plan-likely` : `${savedN} plan PDF(s) saved`} · ${p.description?.slice(0, 46) ?? ""}`,
     );
   }
 
