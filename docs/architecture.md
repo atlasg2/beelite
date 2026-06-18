@@ -266,6 +266,24 @@ Note there's **no `EstimateLine` with stored totals** — material/install/line/
 **Sheet formulas**, not DB columns. The DB stores inputs (`TakeoffLine`, `ProjectFinish`,
 `EstimateSettings`); the Sheet does the arithmetic.
 
+### External lead source — `NolaPermit`
+
+Raw ingest of the City of New Orleans **"Permits - BLDS"** open dataset (`data.nola.gov`, id
+`72f9-bi28`, SODA 2.1). ~456k rows; **every row has a `link`** to the OneStop permit portal
+(`onestopapp.nola.gov`) where the actual plans/documents live. Field names mirror the BLDS spec.
+`workClassMapped = "New"` isolates new construction (~13k rows); `permitTypeMapped` groups by trade.
+The BLDS feed carries no geo (lat/lng columns stay null — geo lives in the sibling `rcm3-fn58`
+dataset, joinable by `pin` later if we want a map).
+
+Populate with `npm run nola:fetch` (`scripts/nola-fetch.ts`) — pages the API in 50k chunks and
+bulk-inserts with `skipDuplicates`, so it's idempotent. Flags: `--workclass=New`, `--max=N`,
+`--page=N`. This table is just the lead/plan index; turning a permit into a `Project` + plans
+corpus is a separate, later step.
+
+Browse/triage at `/permits` (search, code/work/class filters, per-row Save/Hide → `leadStatus`).
+Pulling the actual plan PDFs from behind each permit's portal `link` is documented separately in
+[nola-portal-scraping.md](nola-portal-scraping.md) (the `Redirect → PrmtView → GetDocument` recipe).
+
 ---
 
 ## 5. The extraction pipeline (API calls + prompts)

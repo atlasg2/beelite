@@ -17,5 +17,5 @@ samples/
 # local sample previews
 public/samples/
 
-# local SAM.gov data dump (not source)
+# local scraped corpus (NOLA permit plans etc.) — not source
 data/

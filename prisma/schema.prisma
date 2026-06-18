@@ -179,3 +179,64 @@ model Extraction {
   confidence  Json
   createdAt   DateTime  @default(now())
 }
+
+// ── External lead source: City of New Orleans permits ────────
+// Raw ingest of the "Permits - BLDS" open dataset (data.nola.gov, id 72f9-bi28). Every row has a
+// `link` to the OneStop permit portal where plans/documents may be attached. We store the permit
+// rows here; turning a permit into a Project/plans corpus is a separate, later step. Populated by
+// scripts/nola-fetch.ts. Field names mirror the BLDS spec (snake → camel).
+model NolaPermit {
+  id                    String    @id @default(cuid())
+  permitNum             String    @unique // BLDS PermitNum, e.g. "24-11051-EVAC" — natural key
+  description           String?
+  // Dates
+  appliedDate           DateTime?
+  issueDate             DateTime?
+  completeDate          DateTime?
+  statusDate            DateTime?
+  expiresDate           DateTime?
+  coIssuedDate          DateTime?
+  // Status
+  statusCurrent         String?
+  statusCurrentMapped   String?
+  // Address
+  originalAddress1      String?
+  originalCity          String?
+  originalState         String?
+  originalZip           String?
+  // Classification (mapped = BLDS-normalized vocabulary; workClassMapped "New" = new construction)
+  permitClass           String?
+  permitClassMapped     String?
+  workClass             String?
+  workClassMapped       String?
+  permitType            String?
+  permitTypeDesc        String?
+  permitTypeMapped      String?
+  // Project
+  totalSqFt             Float?
+  estProjectCost        Float?
+  pin                   String?
+  fee                   Float?
+  // Contractor
+  contractorCompanyName String?
+  contractorTrade       String?
+  contractorTradeMapped String?
+  contractorLicNum      String?
+  contractorStateLic    String?
+  publisher             String?
+  // Location + portal link
+  latitude              Float?
+  longitude             Float?
+  link                  String? // OneStop portal redirect URL (plans/documents live behind this)
+  // Lead triage (manual review of whether the portal link has usable plans)
+  leadStatus            String    @default("new") // new (untriaged) | saved (good, scrape later) | dismissed (hide)
+  leadNote              String?
+  leadUpdatedAt         DateTime?
+  // Ingest bookkeeping
+  fetchedAt             DateTime  @default(now())
+
+  @@index([workClassMapped])
+  @@index([permitTypeMapped])
+  @@index([issueDate])
+  @@index([leadStatus])
+}

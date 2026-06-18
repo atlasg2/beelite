@@ -10,8 +10,12 @@
 
 That's the whole job. You do not need anything else.
 
-> ⛔ **Removed / out of scope — do NOT review or bring up:** NOLA permit data, SAM.gov lead-sourcing
-> (deleted), and lead-generation/prospecting in general. Abandoned side-quest, not part of the product.
+> ⛔ **Removed / out of scope — do NOT review or bring up:** SAM.gov lead-sourcing (deleted) and
+> lead-generation/prospecting in general.
+>
+> 🆕 **Back in scope:** NOLA permit data. We ingest the City of New Orleans "Permits - BLDS" dataset
+> (`72f9-bi28`, ~456k rows, every row has a OneStop portal `link`) into a `NolaPermit` table via
+> `npm run nola:fetch`. Goal: mine real local plans/permits to improve the takeoff system.
 
 ## What Beelite is
 A commercial flooring **takeoff & estimating** app. Upload plans → AI reads the finish schedule →
@@ -75,7 +79,80 @@ rewrites `App_*`, formula tabs untouched). `lib/sheet-builder.ts` is the verifie
 Proven end-to-end: `tsx --env-file=.env scripts/test-sync.ts` created a real sheet via OAuth and read
 back **$15,205.54** (then deleted it).
 
-## Current review focus → UX / IA REDESIGN PROPOSAL (not built)
+## Current review focus → ✅ DIAGNOSED + DECIDED: re-architect the plan-read pipeline
+The finish-read "hang" is solved and we agreed on the new design. **Codex: review the build plan in
+"DECIDED ARCHITECTURE" below.** The IA redesign further down is parked.
+
+### What was wrong (confirmed this session)
+- **Not the AI, not the key, not the model.** A direct `/v1/messages` call returns in ~1.3s; the
+  Anthropic console shows the reads that completed (output tokens present). The key is valid; Sonnet
+  and Opus behave identically.
+- **The bottleneck is the whole-PDF download.** `readSchedule` calls `downloadPlan()` and pulls the
+  **entire ~7.6MB plan** from Supabase storage on every read. From this Codespace that transfers at
+  only ~63–340 KB/s (measured via curl; 7.6MB didn't finish in 120s), so the read appears frozen.
+  Slow env compounds it (homepage GET ~26s). In real hosting this download is <1s — but the app
+  shouldn't depend on moving the whole file anyway.
+- **A second, independent bug:** even when a read completed, **0 `Extraction` rows saved**. Likely the
+  structured-output (`output_config`) isn't honored by the installed SDK (`@anthropic-ai/sdk ^0.65`),
+  so Claude returns ```json-fenced markdown and `JSON.parse(textBlock.text)` throws *after* the billed
+  call — surfaces as `POST 200`, UI silently resets. (A signed-URL test confirmed Claude returns
+  fenced output and reads the page correctly: VT/VB/TR-1/SC off AutoZone p14.)
+- ⚠️ **Cost lesson:** a signed-URL test sent the **whole 43-page doc** = 227,460 input tokens (~$0.68).
+  Never send the whole document. Send only the tagged page(s).
+
+### DECIDED ARCHITECTURE (agreed with owner; NOT built yet — this is the plan to review/build)
+**Principle: stop moving the whole PDF. Process each page once at upload; at read, send only the
+tagged page; the user confirms.**
+1. **Gut the scanner's *guessing.*** Remove `scanScore` / `suggestedSheetType` / regex sheet-number &
+   title guesses from the flow (owner: "I don't want it to guess where things go"). Keep only the
+   things it can do with 100% certainty: **count/list pages, render a page image, copy a page's text.**
+   No "suggested" tags — the user tags pages themselves.
+2. **Ingest pipeline at upload (one time).** For each page, persist derived artifacts so reads never
+   re-pull the source PDF:
+   - **page text → Postgres** (add a text field per `PlanSheet`; this is the "log of what's on each page"),
+   - **small page image → storage bucket**, one file per page: `plans/{projectId}/{docId}/pages/0014.jpg`.
+3. **Read = send only the tagged page.** `readSchedule` stops downloading the full PDF. For a tagged
+   page it sends **that page's stored text** (text-heavy pages like notes — ~free) or **that page's
+   stored image** (visual/table pages — Anthropic vision, pennies) to ONE Anthropic call. Text-first is
+   cheap but can scramble dense tables; image preserves layout. Likely: prefer image for accuracy,
+   text as the cheap path — TBD per Codex.
+4. **Fix the save path:** strip markdown fences / properly enable structured outputs so the parse can't
+   throw; add a client `timeout`; surface a real error + progress to the Finishes UI; save an explicit
+   "0 finishes" extraction instead of a silent reset. (Human safety net already exists: the user
+   reviews/confirms every finish on `/finishes` before it enters the bid.)
+5. **Quality method (owner's "verify together then deploy"):** build a small **answer-key/eval set** per
+   job type (retail fit-out, school, hospital…); tune the prompt until the automated read matches the
+   verified answers. Ship the tuned **pipeline** (NOT an agent — narrow repeatable task). A Claude Code
+   "skill" is a *dev aid* for building/verifying, not the shipped product.
+
+### Current clean state of the test project
+`cmqibcb3v00018l3zmh2jdf7t` ("idk", AutoZone 43pg): duplicate document removed; **one** document
+(`cmqibd57g…`, file `…429004-bid1.pdf` present in storage), pages **13 + 14 tagged `finish_schedule`**.
+All other projects were deleted at owner request (only this one remains).
+> ⚠️ **Temp artifact to remove:** `app/api/diag/route.ts` (diagnostic-only; not for prod).
+
+---
+
+## Parallel workstream → PROJECT SOURCING via NOLA permits (separate agent owns this)
+Goal: mine real local commercial jobs (and their actual plan sets) to feed the takeoff app. A second
+agent owns this; the estimating core (above) and this thread should stay on separate files where
+possible. Captured facts so we don't lose them:
+- **Data in DB:** `NolaPermit` table from the City "Permits - BLDS" dataset (`72f9-bi28`, ~456k rows),
+  ingested via `npm run nola:fetch` (`scripts/nola-fetch.ts`). Every row has a OneStop portal `link`.
+- **The gold is the OneStop "Documents" tab.** Each permit page (e.g. `onestopapp.nola.gov/PrmtView.aspx?ref=6H7GJW`,
+  "5400 Magazine St", ref 6H7GJW) has tabs **Overview** and **Documents**. The Documents tab lists the
+  real project files: **architectural/civil/structural/MEP drawing sets** (e.g.
+  `NO1-Drawing-1-Architectural`, `1326_5400_MAGAZINE_ISSUED_FOR_PERMIT`, `24-003_Struct…Permit.pdf`),
+  plus permits/receipts/inspection reports/site photos (`.pdf`, `.msg`, `.jpg`, `.zip`). These drawing
+  PDFs are exactly what the estimating pipeline reads.
+- **Open questions (owner):** (1) Can the Documents tab be **scraped** (programmatic pull of each file
+  from OneStop), or must files be **downloaded manually** per permit? Inspect the portal's document
+  links/auth. (2) Once obtained, **how do these feed storage** — same per-page ingest model as above
+  (`plans/{projectId}/{docId}/…`)? A scraped drawing set becomes a normal `Document` on a `Project`.
+- **Why 5400 Magazine is a good test case:** it has a full issued-for-permit drawing set in Documents —
+  a real, consistent plan to validate scrape → ingest → read end-to-end.
+
+## (parked) UX / IA REDESIGN PROPOSAL (not built)
 The loop works, but the **information architecture is wrong**: every tool is a flat sibling screen and
 `/projects/[id]` is a dumping ground, so it feels "jumbled / split poorly / unbearable" (user). Plan
 previews are unusably tiny; page sheet-number labels confuse (Midlands shows "GAA106", not the expected
