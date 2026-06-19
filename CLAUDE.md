@@ -12,13 +12,16 @@ takeoff → syncs into a Google Sheet that does the bid math.
   Keep STATUS.md a clean current-round snapshot. When the user says **Codex is done / "read it"**,
   read `CODEX_REVIEW.md` and respond. Don't make the user relay Codex's notes by hand.
 - Flag prerequisites/risks proactively.
+- Codex's role is spelled out in `AGENTS.md`. The full doc index + each doc's status is `docs/README.md`.
 
 ## Source-of-truth map
 | Concern | Owns it |
 |---|---|
 | Product (what/why/scope) | `docs/v1-plan.md` |
 | Technical wiring (stack, schema, sync, prompts) | `docs/architecture.md` |
-| The Google Sheet bid engine (tabs, formulas, fields) | `claude/sheet-template.md` (v4) |
+| The Google Sheet bid engine (tabs, formulas, fields) | `docs/contracts/sheet-template-v5.md` (v5) |
+| Bid math (cost → profit → price) | `docs/contracts/pricing-v5.md` (v5) |
+| Doc index + statuses | `docs/README.md` |
 | Where we are / review handoff | `STATUS.md` |
 
 ## Stack & conventions
@@ -33,7 +36,7 @@ only hidden `App_*` tabs (stable order, no reorder/delete); visible tabs are for
 `override` columns. DB stores inputs, not computed totals.
 
 ## Key decisions (newest first)
-- **v5 pricing model** (`claude/v5-math-contract.md`): bid is **cost → profit → price**. Install is
+- **v5 pricing model** (`docs/contracts/pricing-v5.md`): bid is **cost → profit → price**. Install is
   always a per-unit sub rate; `materialSource` = `elite_furnishes | owner_furnishes` (owner → material $0).
   Removed `installMode=pending` and `furnishType=turnkey_sub`. Verified: v4 dummy bid still = $15,205.54.
 - **Profit lens** `profitPctMode` = `markup | margin` (default margin); `materialProfitPct` +

@@ -78,7 +78,7 @@ Server-only env: `ANTHROPIC_API_KEY`, `GOOGLE_SERVICE_ACCOUNT_JSON`, `SUPABASE_U
 The Sheet is split into **hidden app-owned tabs** (app writes, humans never touch) and
 **visible human-facing tabs** (formulas pull from the hidden tabs; humans edit overrides).
 
-> Full, build-ready version with every formula lives in [`../claude/sheet-template.md`](../claude/sheet-template.md).
+> Full, build-ready version with every formula lives in [`contracts/sheet-template-v5.md`](contracts/sheet-template-v5.md).
 
 ### Hidden, app-owned tabs (`App_*`) — app overwrites freely
 | Tab | Columns the app writes |

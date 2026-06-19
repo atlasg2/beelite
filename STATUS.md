@@ -39,7 +39,7 @@ Stack: Next.js + Supabase (Postgres + storage) + Prisma + Anthropic API + Google
 ## Where we are — full plan→bid loop works in-app ✅
 | # | Step | State |
 |---|---|---|
-| 1 | Google Sheet bid-engine template (`claude/sheet-template.md` v4) | ☑ built + verified $15,205.54 |
+| 1 | Google Sheet bid-engine template (`docs/contracts/sheet-template-v5.md` v4) | ☑ built + verified $15,205.54 |
 | 2 | Prisma schema → Supabase | ☑ pushed (session pooler) |
 | 3 | Project creation (home ledger + `/projects/new`) | ☑ |
 | 4 | PDF upload + **page-targeting** (scan every page → Pages screen → tag → preview) | ☑ scan finds schedule pages free (gym pp 4/7/33) |
@@ -276,7 +276,7 @@ correct; 4 findings, all fixed:
 Re-verified: fresh v5 Sheet still **$15,205.54 / profit $1,771.20**; build green; typecheck clean.
 
 ## (prior round) v5 IMPLEMENTATION (built + verified)
-The v5 pricing redesign is **built** to `claude/v5-math-contract.md` and **verified**: a real
+The v5 pricing redesign is **built** to `docs/contracts/pricing-v5.md` and **verified**: a real
 OAuth-built Sheet **and** `lib/estimate.ts` both reproduce **BID PRICE $15,205.54 / profit $1,771.20 /
 15.0% markup / 13.0% margin** (`scripts/test-sync.ts`). **Codex: review the implementation against the
 contract** — files below. Findings → `CODEX_REVIEW.md`.
@@ -294,7 +294,7 @@ Changed this round:
   needs_rate); `saveRates`/`saveSettings` renamed fields.
 - **UI** — `rates-editor` (material source + needs-rate badge), `estimate/page` (cost/profit/price
   statement + margin/markup lens), project detail (`bidPrice`).
-- **Docs** — `sheet-template.md` → v5, `CLAUDE.md` decisions, `v5-math-contract.md` rev 2.
+- **Docs** — `sheet-template-v5.md` → v5, `CLAUDE.md` decisions, `pricing-v5.md` rev 2.
 
 Worth a close look: (a) Estimate `O`/`P` margin-mode guard formulas (the nested `IF(pct>=1,…)`);
 (b) the `effectiveRateStatus` formula in Estimate `S` vs. the app's `needsRate`; (c) library seeding
@@ -305,7 +305,7 @@ in `confirmFinishes` — exact-match map, snapshot semantics; (d) `formattingReq
 ## PROPOSAL: pricing model + bid-statement redesign (NOT built yet)
 This is a **design proposal** from a working session with the owner. Nothing here is coded yet.
 **Codex: review the model for correctness + risk, and flag anything that breaks the locked Sheet math
-(`claude/sheet-template.md` v4) before we build.** It will land as sheet-template **v5** + schema +
+(`docs/contracts/sheet-template-v5.md` v4) before we build.** It will land as sheet-template **v5** + schema +
 `lib/estimate.ts` + `lib/sheet-builder.ts` changes, propagated to `CLAUDE.md` / `docs/v1-plan.md` in
 the same pass.
 
@@ -345,12 +345,12 @@ the same pass.
    company/year. 50 bids/day is fine — Sheets are self-contained, nothing scans across them. A rollup
    "master dashboard" Sheet (pipeline $, win rate) is a **later** reporting layer, out of scope now.
 
-Codex's review of this proposal (all accepted) is now baked into `claude/v5-math-contract.md`.
+Codex's review of this proposal (all accepted) is now baked into `docs/contracts/pricing-v5.md`.
 
 </details>
 
 ## Next (after the contract is approved)
-- Update `claude/sheet-template.md` → v5 from the contract, then schema migration + `lib/estimate.ts`
+- Update `docs/contracts/sheet-template-v5.md` → v5 from the contract, then schema migration + `lib/estimate.ts`
   + `lib/sheet-builder.ts` + Sheet formatting, propagate to `CLAUDE.md` / `docs/v1-plan.md`.
 - Later: Workspace Shared Drive as the production path once Google verification finishes.
 
