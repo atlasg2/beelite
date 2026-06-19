@@ -621,15 +621,57 @@ a.card:hover {
   letter-spacing: -0.01em;
 }
 .ptable .addr { white-space: normal; min-width: 180px; max-width: 280px; }
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+.bulk-label {
+  font-size: 13px;
+  color: var(--muted);
+  margin-right: 2px;
+}
+.ptable .check-col {
+  width: 34px;
+  text-align: center;
+  padding-right: 0;
+}
+.ptable .check-col input { cursor: pointer; }
 .ptable td.desc {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   max-width: 320px;
   color: var(--muted);
   font-size: 14.5px;
-  cursor: help; /* native title tooltip shows the full description on hover */
+  cursor: help;
+  position: relative; /* anchor for the .desc-tip popover */
+  overflow: visible;  /* let the hover tooltip escape the cell */
 }
+/* Truncated inline text… */
+.desc-text {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* …with the full description revealed in a popover on hover. */
+.desc-tip {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+  width: max-content;
+  max-width: 460px;
+  white-space: normal;
+  line-height: 1.45;
+  color: var(--ink, #eee);
+  background: var(--surface, #1c1c1c);
+  border: 1px solid var(--line, #3a3a3a);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.ptable td.desc:hover .desc-tip { display: block; }
 .code-chip {
   font-family: var(--font-mono), monospace;
   font-size: 13px;
@@ -650,6 +692,8 @@ a.card:hover {
 /* ── Lead triage (per-row save / hide) ──────────── */
 .ptable tr[data-lead="saved"] { background: var(--marking-soft); }
 .ptable tr[data-lead="saved"]:hover { background: #47291c; }
+.ptable tr[data-lead="downloaded"] { background: rgba(107, 191, 115, 0.08); }
+.ptable tr[data-lead="downloaded"]:hover { background: rgba(107, 191, 115, 0.16); }
 .ptable tr[data-lead="dismissed"] { opacity: 0.5; }
 
 /* Compact triage dropdown (native <details> — no JS) */
@@ -675,6 +719,7 @@ a.card:hover {
 .lead-menu .caret { font-size: 10px; transition: transform 0.12s ease; }
 .lead-menu[open] .caret { transform: rotate(180deg); }
 .lead-menu.saved .lead-menu-btn { color: var(--marking); border-color: var(--marking); }
+.lead-menu.downloaded .lead-menu-btn { color: var(--ok, #6bbf73); border-color: var(--ok, #6bbf73); }
 .lead-menu.dismissed .lead-menu-btn { color: var(--muted); }
 .lead-menu-pop {
   position: absolute;
@@ -706,6 +751,10 @@ a.card:hover {
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 .btn-mini.save:hover { background: var(--marking-soft); border-color: var(--marking); color: var(--marking-hover); }
+.btn-mini.plans:hover { background: rgba(107, 191, 115, 0.14); border-color: var(--ok, #6bbf73); color: var(--ok, #6bbf73); }
+.btn-mini.copy { font-weight: 600; }
+.btn-mini.copy:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.bulk-sep { width: 1px; align-self: stretch; background: var(--border, #333); margin: 0 4px; }
 .btn-mini.hide:hover { background: #3a1f1f; border-color: #7a4a4a; color: #f0a0a0; }
 .btn-mini.reset { padding: 5px 8px; color: var(--muted); }
 .btn-mini.reset:hover { background: var(--bg); color: var(--text); }
