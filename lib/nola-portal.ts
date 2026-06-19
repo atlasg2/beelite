@@ -1,7 +1,7 @@
 /**
  * Shared NOLA OneStop permit-portal helpers — the `Redirect → PrmtView → GetDocument` recipe.
  * Used by scripts/nola-docs.ts (batch scrape of saved leads) and scripts/nola-peek.ts (quick
- * single-permit look). See docs/nola-portal-scraping.md for the full write-up.
+ * single-permit look). See docs/runbooks/nola-portal.md for the full write-up.
  *
  * No auth, no cookies, no POST: parse the ref out of a permit's link, GET the permit page, regex the
  * inline document list, GET each document by DocID. Keep this the single source of the keep/drop

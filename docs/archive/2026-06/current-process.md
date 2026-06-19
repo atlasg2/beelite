@@ -1,4 +1,11 @@
-# Beelite — what the app actually does today (for GPT review)
+# Archived Process Snapshot
+
+Status: archived
+Captured: 2026-06-19
+Archived: 2026-06-19
+
+This was a point-in-time review aid and is not authoritative. Use `docs/architecture.md` and the code
+for implemented behavior.
 
 This documents the **current, real** behavior of the upload → read → price flow as implemented in
 code (not the plan, not the spec — what the code on disk does right now). Written so GPT can review

@@ -282,7 +282,7 @@ corpus is a separate, later step.
 
 Browse/triage at `/permits` (search, code/work/class filters, per-row Save/Hide → `leadStatus`).
 Pulling the actual plan PDFs from behind each permit's portal `link` is documented separately in
-[nola-portal-scraping.md](nola-portal-scraping.md) (the `Redirect → PrmtView → GetDocument` recipe).
+[runbooks/nola-portal.md](runbooks/nola-portal.md) (the `Redirect -> PrmtView -> GetDocument` recipe).
 
 ---
 

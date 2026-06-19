@@ -8,7 +8,7 @@ import { setLeadStatus, setLeadStatusBulk } from "./actions";
 
 // Browse + triage the ingested City of New Orleans permits (NolaPermit). Filters drive a GET form so
 // the table is shareable/bookmarkable; the per-row Save/Hide buttons are server-action forms that
-// re-render in place. See docs/architecture.md (§ External lead source — NolaPermit).
+// re-render in place. See docs/architecture.md (External lead source - NolaPermit).
 
 export const dynamic = "force-dynamic";
 

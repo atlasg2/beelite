@@ -1,8 +1,13 @@
-# Takeoff measurement — how the app actually helps estimate SF
+# Takeoff Measurement Plan
 
-**Status:** proposal for review (Claude → user/Codex). Not built yet.
-**Owns:** this is the design for the *quantity* problem. When adopted, the locked pieces move into
-`docs/architecture.md` (technical wiring) and the screen into the workflow ladder.
+Status: proposal
+Owner: product owner
+Issue: pending
+Created: 2026-06-19
+Last verified: 2026-06-19
+
+This proposes a design for the quantity problem. It is not approved or implemented. If adopted,
+durable behavior moves into `docs/architecture.md` and this plan is archived after merge.
 
 ---
 

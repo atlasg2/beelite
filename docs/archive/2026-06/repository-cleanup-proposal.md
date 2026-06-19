@@ -1,8 +1,11 @@
 # Repository Cleanup and Claude/Codex Working Proposal
 
-Status: PROPOSAL ONLY - REVIEW BEFORE EXECUTION  
-Prepared: 2026-06-19  
-Purpose: give Claude one self-contained cleanup plan to review before any files are moved or deleted.
+Status: archived
+Prepared: 2026-06-19
+Archived: 2026-06-19
+
+Historical note: this proposal was executed in part. Its recommendation to use `STATUS.md` and
+`CODEX_REVIEW.md` was superseded by the issue/branch/pull-request process in `CONTRIBUTING.md`.
 
 ## 1. Instructions for Claude
 

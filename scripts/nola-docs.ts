@@ -4,7 +4,7 @@
  * For each permit (default: NolaPermit rows with leadStatus="saved"), resolve its portal link to the
  * permit's ref code, fetch the permit page, parse the inline document list, and download the
  * plan-shaped PDFs into data/nola/<permitNum>/ alongside a manifest.json listing EVERY document found
- * (kept or skipped) so nothing is silently lost. See docs/nola-portal-scraping.md for the full recipe.
+ * (kept or skipped) so nothing is silently lost. See docs/runbooks/nola-portal.md for the full recipe.
  *
  *   npm run nola:docs
  *   tsx --env-file=.env scripts/nola-docs.ts --permit=25-19247-RNVS

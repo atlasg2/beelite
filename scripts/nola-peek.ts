@@ -1,7 +1,7 @@
 /**
  * Quick look at ONE permit's documents — and grab them if you want. The fast, console-first
  * counterpart to the batch scraper (scripts/nola-docs.ts). By default it downloads nothing: it just
- * prints the portal's document list so you can eyeball what's there. See docs/nola-portal-scraping.md.
+ * prints the portal's document list so you can eyeball what's there. See docs/runbooks/nola-portal.md.
  *
  *   npm run nola:peek 25-19247-RNVS              # list docs (no download)
  *   npm run nola:peek B8SKMD                      # a raw portal ref works too

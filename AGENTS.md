@@ -1,40 +1,51 @@
-# AGENTS.md — Codex (reviewer) instructions
+# AGENTS.md - Codex instructions
 
-Beelite is built **Claude drives, Codex reviews.** Claude implements; Codex reviews the diff and
-reports findings. This file is Codex's role; `CLAUDE.md` is Claude's. Shared engineering facts live
-in the source-of-truth docs (see `docs/README.md`), not duplicated here.
+Beelite uses Claude as the primary implementer and Codex as the independent planner/reviewer.
+The shared engineering workflow is defined in `CONTRIBUTING.md`; durable project facts are indexed
+in `docs/README.md`.
 
-## Your role
-- **Review, don't implement.** Default to read-only. Do **not** edit implementation files unless the
-  owner explicitly asks you to fix a finding.
-- Review a **defined diff range** (`<base-sha>...<review-sha>`), not "latest code" and not an
-  unspecified dirty worktree. The range and acceptance criteria are in `STATUS.md`.
-- Report findings **first**, ordered by severity, each with a `file:line` reference and a concrete
-  suggested fix. Be specific enough that Claude can act without guessing.
+## Default role
 
-## The review loop (two files)
-- **`STATUS.md`** — Claude's briefing to you. It opens with explicit "Codex, do this" instructions
-  and names the base/review SHAs, acceptance criteria, checks run, and known risks. Read it first.
-- **`CODEX_REVIEW.md`** — your output. **Overwrite** it with one current review (don't append
-  history; git keeps prior versions). When the owner tells Claude "Codex is done / read it," Claude
-  reads this file and responds — so write for Claude as the audience.
+- Default to read-only review and advice.
+- Do not edit implementation files unless the owner explicitly asks Codex to implement or fix work.
+- Do not infer a review target from the latest files or commits. The user must identify a pull
+  request, issue/plan, or exact `<base-sha>...<head-sha>` range.
+- Put review findings in the pull request when GitHub access is available; otherwise return them in
+  the current conversation. Do not create tracked status or review files.
 
-## Severity format
-Order findings `blocker → major → minor → nit`. For each: severity · `file:line` · what's wrong ·
-why it matters · suggested fix. Call out anything that breaks the locked contracts below.
+## User triggers
 
-## Locked contracts to defend (flag any drift)
-- **Pricing math** — `docs/contracts/pricing-v5.md`: bid is **cost → profit → price**; install is a
-  per-unit sub rate; `materialSource = elite_furnishes | owner_furnishes`. The v4 dummy bid must
-  still total **$15,205.54**.
-- **Sheet engine** — `docs/contracts/sheet-template-v5.md`: the app writes only hidden `App_*` tabs
-  (stable order, never reorder/delete); visible tabs are formulas + estimator overrides. DB stores
-  inputs, not computed totals.
-- **One source of truth per concern** — if a change restates a locked fact in a second doc instead of
-  linking, flag it. Contract changes must propagate to every referencing doc in the same diff.
+- **Opinion:** discuss tradeoffs only; no files, branch, or formal review required.
+- **Plan review:** review the named issue or `docs/plans/active/` proposal; do not implement it.
+- **Code review:** review the named pull request or exact commit range.
+- **Implementation/fix:** edit files only when the owner explicitly transfers that task to Codex.
+
+If the requested mode or review target is ambiguous, ask for the missing issue, PR, or commit range.
+
+## Review standard
+
+Findings lead the response and are ordered `blocker`, `major`, `minor`, then `nit`. Each finding must
+include a file/line reference, behavioral impact, and concrete correction. Prioritize:
+
+1. Correctness, data loss, security, cost, and user-visible regressions.
+2. Contract drift and cross-module consistency.
+3. Missing validation, migrations, and tests.
+4. Maintainability only where it creates material engineering risk.
+
+If no findings exist, say so and identify remaining test gaps or residual risk.
+
+## Locked contracts
+
+- `docs/contracts/pricing-v5.md`: cost -> profit -> price; install is per-unit; material source is
+  `elite_furnishes | owner_furnishes`; the regression bid remains `$15,205.54`.
+- `docs/contracts/sheet-template-v5.md`: the app writes hidden `App_*` tabs; visible tabs contain
+  formulas and estimator overrides; the database stores inputs, not computed bid totals.
+- One source of truth per concern: link to contracts rather than restating them in competing docs.
 
 ## Working rules
-- Don't rewrite git history to make the repo look cleaner.
-- Keep documentation, tooling, code-split, and security changes in **separate** commits/reviews.
-- For parallel work, Claude and Codex use **separate git worktrees/branches** — never write the same
-  worktree concurrently.
+
+- Follow `CONTRIBUTING.md` for branches, planning, pull requests, and document lifecycle.
+- Never review an unspecified dirty worktree as though it were an approved change set.
+- Keep documentation cleanup, tooling, refactors, and behavioral work in separate commits/PRs.
+- For parallel implementation, use separate branches and worktrees; never write the same worktree
+  concurrently with Claude.
