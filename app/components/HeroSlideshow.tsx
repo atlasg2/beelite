@@ -80,7 +80,7 @@ export default function HeroSlideshow() {
             <span className="lede__swap" key={active}>{slide.body}</span>
           </p>
 
-          <div className="cta-row">
+          <div className="cta-row" key={active}>
             <a href={slide.href} className="btn btn--solid btn--thin">
               Learn more
             </a>
