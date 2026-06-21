@@ -58,11 +58,19 @@ ul {
   outline-offset: 3px;
 }
 
-/* ---------- Top bar ---------- */
+/* ---------- Top bar (fixed; follows the page as you scroll) ---------- */
 .topbar {
-  position: absolute;
-  inset: 0 0 auto 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 30;
+  width: 100%;
+  transition: background 0.3s var(--ease), box-shadow 0.3s var(--ease);
+}
+
+.topbar__inner {
+  position: relative;
   display: flex;
   align-items: center;
   gap: clamp(20px, 4vw, 44px);
@@ -71,6 +79,26 @@ ul {
   max-width: var(--maxw);
   margin: 0 auto;
   padding: 24px var(--gutter);
+  transition: min-height 0.3s var(--ease), padding 0.3s var(--ease);
+}
+
+/* Solid, blurred bar once scrolled — keeps the white nav legible over
+   light sections instead of floating transparently. */
+.topbar.is-stuck {
+  background: rgba(10, 11, 13, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
+.topbar.is-stuck .topbar__inner {
+  min-height: 70px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.topbar.is-stuck .brand__logo {
+  height: clamp(42px, 4.4vw, 54px);
 }
 
 .brand {
@@ -81,6 +109,7 @@ ul {
 .brand__logo {
   width: auto;
   height: clamp(50px, 5.2vw, 66px);
+  transition: height 0.3s var(--ease);
 }
 
 .nav {
@@ -372,50 +401,25 @@ ul {
   height: 22px;
 }
 
-@media (max-width: 600px) {
-  /* Hide slideshow arrows on mobile — slides auto-advance. */
-  .hero__arrow {
-    display: none;
-  }
-
-  /* Bigger logo — the fluid clamp bottoms out too small on phones. */
-  .brand__logo {
-    height: 62px;
-  }
-
-  /* Center the hero copy so it fills the screen instead of bunching at
-     the top with an empty lower half; give it a little more room to breathe. */
-  .hero__inner {
-    justify-content: center;
-    padding-top: 88px;
-    padding-bottom: 40px;
-  }
-
-  .display {
-    margin-bottom: 24px;
-  }
-
-  .display__line + .display__line {
-    margin-top: 7px;
-  }
-
-  .lede {
-    margin-bottom: 28px;
-  }
-}
-
 .hero__scrim {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-      120% 90% at 50% 42%,
-      rgba(0, 0, 0, 0.16) 0%,
-      rgba(0, 0, 0, 0.36) 68%,
-      rgba(0, 0, 0, 0.5) 100%
+  /* Light at the top so the photo reads, a soft pool of shade behind the
+     copy for legibility, and a grounded base that blends into the section
+     below. The whole section gets clearer contrast without going dark. */
+  background:
+    radial-gradient(
+      115% 80% at 50% 52%,
+      rgba(6, 7, 9, 0.5) 0%,
+      rgba(6, 7, 9, 0.2) 52%,
+      rgba(6, 7, 9, 0) 80%
     ),
-    linear-gradient(0deg, var(--ink) 0%, rgba(14, 15, 18, 0) 42%);
-  /* Keep the image at the lighter level (no dimming on reveal). */
-  opacity: 0.4;
+    linear-gradient(
+      180deg,
+      rgba(6, 7, 9, 0.16) 0%,
+      rgba(6, 7, 9, 0) 30%,
+      rgba(6, 7, 9, 0.5) 100%
+    );
 }
 
 .hero__inner {
@@ -444,10 +448,22 @@ ul {
   animation: rise 0.6s var(--ease) both;
 }
 
+/* Hero kicker above the headline — lighter, warm accent for contrast. */
+.hero__eyebrow {
+  font-size: clamp(12px, 1.1vw, 14px);
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--red-coral);
+  margin-bottom: clamp(12px, 1.4vw, 18px);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+  animation: heroSwap 0.7s var(--ease-smooth) 1.25s both;
+}
+
 .display {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: clamp(2.1rem, 5vw, 4rem);
+  font-size: clamp(2.2rem, 5.6vw, 4.4rem);
   line-height: 1.04;
   letter-spacing: -0.02em;
   margin-bottom: clamp(18px, 2.2vw, 30px);
@@ -736,7 +752,7 @@ ul {
   }
 
   /* Center the logo; pin the hamburger to the right so it doesn't shift it. */
-  .topbar {
+  .topbar__inner {
     justify-content: center;
   }
 
@@ -3112,4 +3128,40 @@ select.qfield__input {
 
 @media (max-width: 520px) {
   .procgrid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   Mobile hero (phones). Placed at the END so these overrides win
+   over the base .hero/.brand rules regardless of where they appear.
+   ============================================================ */
+@media (max-width: 600px) {
+  /* Slides auto-advance — drop the arrows on touch. */
+  .hero__arrow {
+    display: none;
+  }
+
+  /* The fluid clamp bottoms out too small on phones. */
+  .brand__logo {
+    height: 72px;
+  }
+
+  /* Center the copy so it fills the screen instead of bunching at the
+     top with an empty lower half, and give it room to breathe. */
+  .hero__inner {
+    justify-content: center;
+    padding-top: 96px;
+    padding-bottom: 48px;
+  }
+
+  .display {
+    margin-bottom: 24px;
+  }
+
+  .display__line + .display__line {
+    margin-top: 8px;
+  }
+
+  .lede {
+    margin-bottom: 28px;
+  }
 }

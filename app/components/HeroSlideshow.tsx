@@ -7,17 +7,19 @@ const SLIDES = [
   {
     src: "/hero/hero-1.jpg",
     alt: "Commercial weight-room flooring with custom logo tiles",
-    titleTop: "Commercial",
-    titleBottom: "Flooring Installation",
-    body: "Elevate your commercial, fitness, and retail spaces with Elite Installation Services. Our expert team delivers precision flooring installation — flawless results and top-tier solutions for every project.",
+    eyebrow: "Commercial Flooring Experts",
+    titleTop: "Installed",
+    titleBottom: "Nationwide",
+    body: "Weight rooms, retail floors, and offices — Elite installs commercial flooring coast to coast. Local crews, full logistics, and a finish that's ready on schedule.",
     href: "/flooring-installation",
   },
   {
     src: "/hero/hero-2.jpg",
     alt: "High-end fitness facility with full equipment install",
-    titleTop: "Fitness Equipment",
-    titleBottom: "Assembly & Installation",
-    body: "Power up your fitness spaces with Elite Installation Services. Our skilled crews handle flawless assembly and installation of every machine — delivered ready to train.",
+    eyebrow: "Fitness Equipment Specialists",
+    titleTop: "Assembled",
+    titleBottom: "On-Site",
+    body: "Racks, cardio, cable machines, platforms — we assemble and install every piece, floor-ready and safe, so your members can train day one.",
     href: "#fitness",
   },
 ];
@@ -65,6 +67,9 @@ export default function HeroSlideshow() {
 
       <div className="hero__inner">
         <div className="hero__copy">
+          <p className="hero__eyebrow" key={`eyebrow-${active}`}>
+            {slide.eyebrow}
+          </p>
           <h1 id="hero-title" className="display">
             <span className="display__swap" key={active}>
               <span className="display__line">

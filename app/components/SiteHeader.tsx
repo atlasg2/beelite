@@ -12,6 +12,7 @@ const NAV = [
 
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [stuck, setStuck] = useState(false);
 
   // Lock body scroll while the mobile menu is open, and close on Escape.
   useEffect(() => {
@@ -26,41 +27,51 @@ export default function SiteHeader() {
     };
   }, [open]);
 
+  // Give the fixed header a solid background once the page is scrolled.
+  useEffect(() => {
+    const onScroll = () => setStuck(window.scrollY > 16);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="topbar">
-      <a className="brand" href="/" aria-label="Elite Installation Services — home">
-        <Image
-          src="/site/logo.png"
-          alt="Elite Installation Services"
-          width={600}
-          height={255}
-          priority
-          className="brand__logo"
-        />
-      </a>
+    <header className={`topbar${stuck ? " is-stuck" : ""}`}>
+      <div className="topbar__inner">
+        <a className="brand" href="/" aria-label="Elite Installation Services — home">
+          <Image
+            src="/site/logo.png"
+            alt="Elite Installation Services"
+            width={600}
+            height={255}
+            priority
+            className="brand__logo"
+          />
+        </a>
 
-      <nav className="nav" aria-label="Primary">
-        {NAV.map((item) => (
-          <a key={item.href} href={item.href} className="nav__link">
-            {item.label}
-          </a>
-        ))}
-      </nav>
+        <nav className="nav" aria-label="Primary">
+          {NAV.map((item) => (
+            <a key={item.href} href={item.href} className="nav__link">
+              {item.label}
+            </a>
+          ))}
+        </nav>
 
-      <a href="/#contact" className="btn btn--solid btn--sm nav__quote">
-        Contact
-      </a>
+        <a href="/#contact" className="btn btn--solid btn--sm nav__quote">
+          Contact
+        </a>
 
-      <button
-        className={`hamburger${open ? " is-open" : ""}`}
-        aria-label={open ? "Close menu" : "Open menu"}
-        aria-expanded={open}
-        aria-controls="mobile-menu"
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <span /><span /><span />
-      </button>
+        <button
+          className={`hamburger${open ? " is-open" : ""}`}
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
+          aria-controls="mobile-menu"
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span /><span /><span />
+        </button>
+      </div>
 
       <div
         id="mobile-menu"
