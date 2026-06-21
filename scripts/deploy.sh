@@ -26,6 +26,9 @@ if [ -z "${VERCEL_TOKEN:-}" ]; then
 fi
 
 echo "▶ 1/3  Type-checking…"
+# Drop Next's generated route types — stale entries for deleted routes would
+# otherwise fail tsc. They're regenerated on the next build/dev run.
+rm -rf .next/types 2>/dev/null || true
 npm run typecheck
 
 echo "▶ 2/3  Deploying to production…"
