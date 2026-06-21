@@ -91,16 +91,6 @@ ul {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
-.topbar.is-stuck .topbar__inner {
-  min-height: 70px;
-  padding-top: 12px;
-  padding-bottom: 12px;
-}
-
-.topbar.is-stuck .brand__logo {
-  height: clamp(42px, 4.4vw, 54px);
-}
-
 .brand {
   display: inline-flex;
   align-items: center;
@@ -359,7 +349,7 @@ ul {
 }
 
 .hero__slide img {
-  filter: brightness(0.6) contrast(1.03);
+  filter: brightness(0.74) contrast(1.03);
 }
 
 /* Slide arrows */
@@ -409,16 +399,16 @@ ul {
      below. The whole section gets clearer contrast without going dark. */
   background:
     radial-gradient(
-      115% 80% at 50% 52%,
-      rgba(6, 7, 9, 0.5) 0%,
-      rgba(6, 7, 9, 0.2) 52%,
-      rgba(6, 7, 9, 0) 80%
+      120% 85% at 50% 52%,
+      rgba(6, 7, 9, 0.3) 0%,
+      rgba(6, 7, 9, 0.1) 55%,
+      rgba(6, 7, 9, 0) 82%
     ),
     linear-gradient(
       180deg,
-      rgba(6, 7, 9, 0.16) 0%,
-      rgba(6, 7, 9, 0) 30%,
-      rgba(6, 7, 9, 0.5) 100%
+      rgba(6, 7, 9, 0.08) 0%,
+      rgba(6, 7, 9, 0) 36%,
+      rgba(6, 7, 9, 0.38) 100%
     );
 }
 
@@ -446,18 +436,6 @@ ul {
   color: var(--red);
   margin-bottom: 30px;
   animation: rise 0.6s var(--ease) both;
-}
-
-/* Hero kicker above the headline — lighter, warm accent for contrast. */
-.hero__eyebrow {
-  font-size: clamp(12px, 1.1vw, 14px);
-  font-weight: 700;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--red-coral);
-  margin-bottom: clamp(12px, 1.4vw, 18px);
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
-  animation: heroSwap 0.7s var(--ease-smooth) 1.25s both;
 }
 
 .display {
