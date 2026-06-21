@@ -6,6 +6,7 @@ export type ServiceItem = {
   btn: string;
   img: string;
   alt: string;
+  href?: string;
 };
 
 const ALT = {
@@ -23,6 +24,7 @@ export const CONTENT_A: ServiceItem[] = [
     btn: "View Flooring Services",
     img: "/hero/hero-1.jpg",
     alt: ALT.flooring,
+    href: "/flooring-installation",
   },
   {
     id: "fitness",
@@ -43,8 +45,9 @@ export const CONTENT_B: ServiceItem[] = [
     sub: "Built for Fitness, Retail, Healthcare & Commercial Spaces",
     body: "From preparation through installation, our team delivers high-performance flooring systems with the quality, consistency, and responsiveness your project requires.",
     btn: "View Flooring Services",
-    img: "/hero/hero-1.jpg",
+    img: "/scraped-images/_upscaled/Commercial-Flooring-Installers.png",
     alt: ALT.flooring,
+    href: "/flooring-installation",
   },
   {
     id: "fitness",

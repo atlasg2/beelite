@@ -66,6 +66,11 @@ export function AboutOverlay() {
             <Stat key={s.label} to={s.to} label={s.label} cls="ovstat" />
           ))}
         </Reveal>
+        <Reveal className="aboutov__cta reveal">
+          <a href="/about" className="btn btn--solid reveal-item">
+            Learn About Us
+          </a>
+        </Reveal>
       </div>
     </section>
   );

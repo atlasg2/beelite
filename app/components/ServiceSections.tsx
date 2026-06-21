@@ -6,14 +6,16 @@ import type { ServiceItem } from "./serviceContent";
 export const ServiceBtn = ({
   label,
   variant,
+  href = "#contact",
   className = "",
 }: {
   label: string;
   variant: "red" | "dark";
+  href?: string;
   className?: string;
 }) => (
   <a
-    href="#contact"
+    href={href}
     className={`btn ${variant === "red" ? "btn--solid" : "btn--dark"} btn--service ${className}`}
   >
     {label}
@@ -76,7 +78,7 @@ export function NowServices({
               <MaskedHeading text={s.head} headingClass="opt-now__heading" underline />
               <p className="opt-now__sub reveal-item">{s.sub}</p>
               <p className="srow__body opt-now__body reveal-item">{s.body}</p>
-              <ServiceBtn label={s.btn} variant={red ? "dark" : "red"} className="reveal-item" />
+              <ServiceBtn label={s.btn} variant={red ? "dark" : "red"} href={s.href} className="reveal-item" />
             </Reveal>
           </article>
         );
@@ -119,7 +121,7 @@ export function ParallaxServices({
                 <MaskedHeading text={s.head} headingClass="opt-parallax__title" />
                 <p className="opt-parallax__sub reveal-item">{s.sub}</p>
                 <p className="opt-body reveal-item">{s.body}</p>
-                <ServiceBtn label={s.btn} variant="red" className="reveal-item" />
+                <ServiceBtn label={s.btn} variant="red" href={s.href} className="reveal-item" />
               </Reveal>
             </div>
           </ScrollScene>

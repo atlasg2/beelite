@@ -1041,6 +1041,11 @@ ul {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 2px 16px rgba(0, 0, 0, 0.6);
 }
 
+/* Flooring row subline in white to differentiate from the red fitness subline. */
+#flooring .opt-parallax__sub {
+  color: #ffffff;
+}
+
 .opt-parallax .opt-body {
   font-size: 1.04rem;
   line-height: 1.65;
@@ -1264,6 +1269,11 @@ ul {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: clamp(26px, 3vw, 40px) clamp(28px, 4vw, 56px);
+}
+
+.aboutov__cta {
+  margin-top: clamp(32px, 4vw, 48px);
+  text-align: center;
 }
 
 .ovstat {
@@ -3230,5 +3240,37 @@ select.qfield__input {
 
   .lede {
     margin-bottom: 28px;
+  }
+
+  /* "Experience That Keeps Projects Moving": the map is a transparent, already
+     dark infographic (charcoal states, brand-red pins). On phones, drop the
+     full-bleed overlay and let the map sit in normal flow directly on the
+     section's dark background — one cohesive block, the coast-to-coast map
+     leading, headline + stats beneath. No white card, no scrim over the art. */
+  .aboutov {
+    display: block;
+    min-height: 0;
+    overflow: visible;
+    padding-top: 32px;
+  }
+
+  .aboutov__bg {
+    position: relative;
+    aspect-ratio: 1500 / 926;
+    width: calc(100% - 2 * var(--gutter));
+    margin: 0 auto;
+  }
+
+  .aboutov__bg img {
+    object-fit: contain;
+  }
+
+  .aboutov__scrim {
+    display: none;
+  }
+
+  .aboutov__inner {
+    padding-top: 28px;
+    padding-bottom: 56px;
   }
 }
