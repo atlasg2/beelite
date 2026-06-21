@@ -95,12 +95,12 @@ export function ParallaxServices({
 }) {
   return (
     <section className="opt-parallax" aria-label="Our services">
-      {items.map((s, i) => (
+      {items.map((s) => (
         <article
           key={s.id}
           id={anchored ? s.id : undefined}
-          // Alternate the two approved scroll effects: A (brighten) then B (parallax).
-          className={`opt-parallax__row opt-parallax__row--fx${i % 2 === 0 ? "a" : "b"}`}
+          // Parallax glide effect on every row.
+          className="opt-parallax__row opt-parallax__row--fxb"
         >
           <ScrollScene className="opt-parallax__stage">
             <div className="opt-parallax__layer">
