@@ -301,6 +301,7 @@ export function QuoteCentered({
   gridColor,
   theme,
   anchored = true,
+  kicker,
 }: {
   tag?: string;
   glow?: string;
@@ -308,6 +309,7 @@ export function QuoteCentered({
   gridColor?: string;
   theme?: string;
   anchored?: boolean;
+  kicker?: string;
 }) {
   return (
     <section
@@ -319,7 +321,9 @@ export function QuoteCentered({
       {decor && <QuoteDecor kind={decor} />}
       <Reveal className="quote__inner quote__inner--center reveal">
         <div className="reveal-item"><Logo center /></div>
-        <h2 className="quote__title reveal-item">Request a quote</h2>
+        <h2 className="quote__title reveal-item">
+          Request a quote{kicker ? ` ${kicker}` : ""}
+        </h2>
         <p className="quote__lede quote__lede--center reveal-item">
           Tell us about the project and we'll get you a fast, accurate number — with a
           local crew lined up to do the work.

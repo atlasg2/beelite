@@ -6,3 +6,7 @@
 next-env.d.ts
 .DS_Store
 .env*.local
+
+# Vercel deploy token (local only)
+.vercel.token
+.vercel

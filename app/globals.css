@@ -306,11 +306,11 @@ ul {
 .display__swap,
 .lede__swap {
   display: block;
-  animation: heroSwap 0.7s var(--ease-smooth) 0.9s both;
+  animation: heroSwap 0.7s var(--ease-smooth) 1.4s both;
 }
 
 .lede__swap {
-  animation-delay: 1.05s;
+  animation-delay: 1.55s;
 }
 
 @keyframes heroSwap {
@@ -322,7 +322,7 @@ ul {
   position: absolute;
   inset: 0;
   opacity: 0;
-  transition: opacity 1.2s var(--ease);
+  transition: opacity 1.4s var(--ease);
 }
 
 .hero__slide.is-active {
@@ -373,13 +373,34 @@ ul {
 }
 
 @media (max-width: 600px) {
+  /* Hide slideshow arrows on mobile — slides auto-advance. */
   .hero__arrow {
-    width: 44px;
-    height: 44px;
+    display: none;
   }
-  .hero__arrow svg {
-    width: 18px;
-    height: 18px;
+
+  /* Bigger logo — the fluid clamp bottoms out too small on phones. */
+  .brand__logo {
+    height: 62px;
+  }
+
+  /* Center the hero copy so it fills the screen instead of bunching at
+     the top with an empty lower half; give it a little more room to breathe. */
+  .hero__inner {
+    justify-content: center;
+    padding-top: 88px;
+    padding-bottom: 40px;
+  }
+
+  .display {
+    margin-bottom: 24px;
+  }
+
+  .display__line + .display__line {
+    margin-top: 7px;
+  }
+
+  .lede {
+    margin-bottom: 28px;
   }
 }
 
@@ -393,6 +414,8 @@ ul {
       rgba(0, 0, 0, 0.5) 100%
     ),
     linear-gradient(0deg, var(--ink) 0%, rgba(14, 15, 18, 0) 42%);
+  /* Keep the image at the lighter level (no dimming on reveal). */
+  opacity: 0.4;
 }
 
 .hero__inner {
@@ -474,7 +497,8 @@ ul {
   line-height: 1.55;
   font-weight: 400;
   letter-spacing: 0.005em;
-  color: rgba(255, 255, 255, 0.97);
+  color: #ffffff;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.55);
   animation: rise 1.3s var(--ease-smooth) 0.95s both;
 }
 
@@ -483,7 +507,7 @@ ul {
   flex-wrap: wrap;
   justify-content: center;
   gap: 16px;
-  animation: rise 1.2s var(--ease-smooth) 1.2s both;
+  animation: rise 1.2s var(--ease-smooth) 1.7s both;
 }
 
 /* ---------- Shared section heading ---------- */
@@ -987,8 +1011,8 @@ ul {
   opacity: 0;
   transform: translateY(20px);
   filter: blur(6px);
-  transition: opacity 0.7s var(--ease), transform 0.7s var(--ease),
-    filter 0.7s var(--ease);
+  transition: opacity 0.85s var(--ease), transform 0.85s var(--ease),
+    filter 0.85s var(--ease);
 }
 
 .reveal.is-in .reveal-item {
@@ -997,20 +1021,14 @@ ul {
   filter: none;
 }
 
-/* Deliberate cascade rather than everything-at-once */
-.reveal.is-in .opt-now__sub,
-.reveal.is-in .opt-parallax__sub {
-  transition-delay: 0.22s;
-}
-
-.reveal.is-in .opt-now__body,
-.reveal.is-in .opt-body {
-  transition-delay: 0.34s;
-}
-
-.reveal.is-in .btn {
-  transition-delay: 0.46s;
-}
+/* Universal cascade — every reveal group steps its children in by position
+   instead of firing all at once. (Grids with their own per-card delays —
+   .adv__grid, .why__grid — keep theirs via higher specificity.) */
+.reveal.is-in .reveal-item:nth-child(2) { transition-delay: 0.14s; }
+.reveal.is-in .reveal-item:nth-child(3) { transition-delay: 0.28s; }
+.reveal.is-in .reveal-item:nth-child(4) { transition-delay: 0.42s; }
+.reveal.is-in .reveal-item:nth-child(5) { transition-delay: 0.56s; }
+.reveal.is-in .reveal-item:nth-child(n + 6) { transition-delay: 0.7s; }
 
 
 /* ============================================================
