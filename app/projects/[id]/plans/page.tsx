@@ -16,14 +16,17 @@ export default async function PlansPage({ params, searchParams }: { params: Prom
   const project = await db.project.findUnique({ where: { id }, select: { id: true } });
   if (!project) notFound();
 
-  const doc = await db.document.findFirst({
+  // A project's plan set can span MULTIPLE Document rows: storage caps a single upload at 50MB, so a
+  // large architectural set is split across PDFs (see the project note). We load every document and
+  // stitch their pages into ONE continuous set so the Plans tab shows the whole thing.
+  const docs = await db.document.findMany({
     where: { projectId: id },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "asc" },
     include: { pages: { orderBy: { pageNumber: "asc" }, include: { extraction: true } } },
   });
   const upload = uploadDocument.bind(null, id);
 
-  if (!doc) {
+  if (!docs.length) {
     return (
       <ProjectWorkspace projectId={id} active="plans">
         <div className="page-head"><h1 className="page-title">Plans</h1></div>
@@ -33,32 +36,46 @@ export default async function PlansPage({ params, searchParams }: { params: Prom
     );
   }
 
-  const pdfUrl = await signedUrl(doc.fileUrl).catch(() => null);
-  const filename = doc.originalFilename ?? doc.fileUrl.split("/").pop() ?? "Plan PDF";
+  const primary = docs[0]; // first-uploaded file: the "Open PDF" target + finish-read source
+  const pdfUrl = await signedUrl(primary.fileUrl).catch(() => null);
+  const totalPages = docs.reduce((n, d) => n + d.pages.length, 0);
+  const filename =
+    docs.length === 1
+      ? primary.originalFilename ?? primary.fileUrl.split("/").pop() ?? "Plan PDF"
+      : `Combined set · ${docs.length} files`;
 
-  // Sheet labels (number + title) + evidence come from the read's saved output (no AI on load).
-  const ext = doc.pages.find((p) => p.extraction)?.extraction;
+  // finishStatus (for the Read button label) comes from the primary doc's saved read output.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const raw = (ext?.rawOutput ?? {}) as any;
-  const finishStatus: string = raw.status ?? "";
-  const byPage = new Map<number, SheetLabel>((Array.isArray(raw.sheetIndex) ? raw.sheetIndex : []).map((s: SheetLabel) => [s.page, s]));
-  const evidence = new Set<string>(Array.isArray(raw.evidencePages) ? raw.evidencePages.map(String) : []);
+  const finishStatus: string = ((primary.pages.find((p) => p.extraction)?.extraction?.rawOutput ?? {}) as any).status ?? "";
 
-  const pages: PlanPageView[] = await Promise.all(
-    doc.pages.map(async (p) => {
-      const art = readPageArtifact(p.scanSignals);
-      const imageUrl = art?.imagePath ? await signedUrl(art.imagePath, 3600).catch(() => null) : null;
-      const label = byPage.get(p.pageNumber);
-      const sheet = label?.sheet || p.sheetNumber || "";
-      return {
-        pageNumber: p.pageNumber,
-        imageUrl,
-        sheet,
-        title: label?.title || p.sheetTitle || "",
-        isEvidence: !!(sheet && evidence.has(sheet)),
-      };
+  // Stitch pages across all docs into a single 1..N sequence. Each doc restarts pageNumber at 1, so
+  // we offset by the cumulative page count. Sheet labels/evidence come from each doc's own read output.
+  const pageGroups = await Promise.all(
+    docs.map(async (d, di) => {
+      const offset = docs.slice(0, di).reduce((n, x) => n + x.pages.length, 0);
+      const ext = d.pages.find((p) => p.extraction)?.extraction;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw = (ext?.rawOutput ?? {}) as any;
+      const byPage = new Map<number, SheetLabel>((Array.isArray(raw.sheetIndex) ? raw.sheetIndex : []).map((s: SheetLabel) => [s.page, s]));
+      const evidence = new Set<string>(Array.isArray(raw.evidencePages) ? raw.evidencePages.map(String) : []);
+      return Promise.all(
+        d.pages.map(async (p): Promise<PlanPageView> => {
+          const art = readPageArtifact(p.scanSignals);
+          const imageUrl = art?.imagePath ? await signedUrl(art.imagePath, 3600).catch(() => null) : null;
+          const label = byPage.get(p.pageNumber);
+          const sheet = label?.sheet || p.sheetNumber || "";
+          return {
+            pageNumber: offset + p.pageNumber,
+            imageUrl,
+            sheet,
+            title: label?.title || p.sheetTitle || "",
+            isEvidence: !!(sheet && evidence.has(sheet)),
+          };
+        })
+      );
     })
   );
+  const pages: PlanPageView[] = pageGroups.flat();
 
   const processing = pages.length === 0;
   // Deep-link from the Finishes table: ?sheet=A6.1 opens the viewer on that sheet.
@@ -75,7 +92,8 @@ export default async function PlansPage({ params, searchParams }: { params: Prom
         </div>
         <div className="pl-head-actions">
           {pdfUrl && <a className="btn" href={pdfUrl} target="_blank" rel="noreferrer">Open PDF</a>}
-          <form action={readWholeDoc.bind(null, doc.id)}>
+          {/* Finish-read runs on the primary file only; multi-file finish-read isn't wired yet. */}
+          <form action={readWholeDoc.bind(null, primary.id)}>
             <button type="submit" className="btn btn-primary">{finishStatus === "" || finishStatus === "not_started" ? "Read Finishes" : "Re-read Finishes"}</button>
           </form>
         </div>
@@ -86,8 +104,9 @@ export default async function PlansPage({ params, searchParams }: { params: Prom
         <div className="pl-file-main">
           <div className="pl-file-name">{filename}</div>
           <div className="pl-file-meta">
-            {doc.pages.length ? `${doc.pages.length} pages` : "processing pages…"}
-            {doc.createdAt ? ` · uploaded ${new Date(doc.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : ""}
+            {totalPages ? `${totalPages} pages` : "processing pages…"}
+            {docs.length > 1 ? ` · ${docs.length} files` : ""}
+            {primary.createdAt ? ` · uploaded ${new Date(primary.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : ""}
           </div>
         </div>
       </div>

@@ -59,9 +59,11 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const roles = ai.pageRoles;
 
   // PDF url + page-1 thumbnail (for "Open PDF" + the small preview), fetched here (no AI).
+  // First-uploaded doc = the primary file (its page 1 is the cover, its PDF is the "Open PDF" target).
+  // A plan set split across files to fit the 50MB cap still opens from / reads the primary.
   const doc = await db.document.findFirst({
     where: { projectId: id },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "asc" },
     include: { pages: { orderBy: { pageNumber: "asc" }, take: 1 } },
   });
   const pdfUrl = doc ? await signedUrl(doc.fileUrl).catch(() => null) : null;

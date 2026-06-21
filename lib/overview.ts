@@ -95,7 +95,7 @@ export async function getProjectOverview(projectId: string): Promise<ProjectOver
     where: { id: projectId },
     include: {
       documents: {
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "asc" }, // first-uploaded = the primary file (cover sheet, finish-read source)
         include: { pages: { orderBy: { pageNumber: "asc" }, include: { extraction: true } } },
       },
       finishes: true,
@@ -208,7 +208,9 @@ export async function getProjectOverview(projectId: string): Promise<ProjectOver
       updatedAt: project.updatedAt,
     },
     document: doc
-      ? { id: doc.id, originalFilename: doc.originalFilename, pageCount: doc.pages.length, uploadedAt: doc.createdAt }
+      ? // pageCount spans every document on the project: a large plan set can be split across
+        // multiple PDFs to fit the 50MB upload cap, but it's shown as one combined set.
+        { id: doc.id, originalFilename: doc.originalFilename, pageCount: pages.length, uploadedAt: doc.createdAt }
       : null,
     aiFindings: {
       projectDetailsStatus,

@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { getOrCreateDefaultCompany } from "@/lib/company";
-import { uploadPlan, downloadPlan, signedUrl } from "@/lib/storage";
+import { uploadPlan, downloadPlan, signedUrl, deletePlanPrefix } from "@/lib/storage";
 import { extractFinishSchedule, extractFinishesFromPages, readFinishesGuarded, extractProjectInfo, type ExtractedFinish, type ProjectInfo } from "@/lib/anthropic";
 import { scanPdf, extractPages, renderPage } from "@/lib/pdf";
 import { readPageArtifact, ingestDocument } from "@/lib/ingest";
@@ -502,6 +502,13 @@ export async function replaceTakeoff(projectId: string, rows: TakeoffInput[]) {
 }
 
 export async function deleteProject(projectId: string) {
+  // Remove stored objects (PDFs + page images) first — DB cascade alone leaks them. Best-effort.
+  try {
+    const removed = await deletePlanPrefix(projectId);
+    if (removed) console.log(`deleteProject ${projectId}: removed ${removed} storage object(s)`);
+  } catch (e) {
+    console.error(`deleteProject ${projectId}: storage cleanup failed (continuing)`, e);
+  }
   await db.project.delete({ where: { id: projectId } }); // cascades documents/pages/finishes/takeoff/scope/settings
   revalidatePath("/");
   redirect("/");

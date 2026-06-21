@@ -15,8 +15,7 @@ process.loadEnvFile(".env");
 import { existsSync, readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { db } from "@/lib/db";
-import { uploadPlan } from "@/lib/storage";
-import { ingestDocument } from "@/lib/ingest";
+import { uploadPlanSet } from "@/lib/plan-split";
 import { getOrCreateDefaultCompany } from "@/lib/company";
 
 const ROOT = join(process.cwd(), "data", "nola");
@@ -96,17 +95,12 @@ async function main() {
 
     for (const pdf of pdfs) {
       const bytes = readFileSync(join(dir, pdf));
-      const safeName = pdf.replace(/[^\w.\-]+/g, "_");
-      const path = `${project.id}/${safeName}`;
-      try {
-        await uploadPlan(path, bytes); // upsert:false — throws if already there (re-run safety)
-      } catch {
-        /* already uploaded on a prior run — reuse the stored object */
-      }
-      const doc = await db.document.create({ data: { projectId: project.id, fileUrl: path } });
-      const res = await ingestDocument(doc.id);
-      docs++;
-      console.log(`    ${m.permitNum} · ${pdf.slice(0, 46)} → ${res.pages}pg (${res.textPages} text, ${res.imagesOk} img)`);
+      // uploadPlanSet auto-splits >50MB into multiple Documents (the viewer stitches them) and ingests each.
+      const res = await uploadPlanSet(project.id, bytes, pdf);
+      docs += res.documents.length;
+      console.log(
+        `    ${m.permitNum} · ${pdf.slice(0, 46)} → ${res.pages}pg${res.parts > 1 ? ` · ${res.parts} parts (auto-split >50MB)` : ""}`,
+      );
     }
 
     await db.project.update({ where: { id: project.id }, data: { status: "ingested" } });
