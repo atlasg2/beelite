@@ -6,7 +6,7 @@ import Reveal from "./Reveal";
 
 const Logo = ({ center = false }: { center?: boolean }) => (
   <Image
-    src="/logo.png"
+    src="/site/logo.png"
     alt="Elite Installation Services"
     width={460}
     height={196}

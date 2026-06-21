@@ -55,7 +55,7 @@ export const metadata: Metadata = {
       "Installation crews for fitness, retail, healthcare, education, and commercial projects — installed precise, on schedule.",
     images: [
       {
-        url: "/og.svg",
+        url: "/site/og.svg",
         width: 1200,
         height: 630,
         alt: "Elite Installation Services — Nationwide Commercial Flooring Experts",
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
     title: "Elite Installation Services — Commercial Flooring Experts",
     description:
       "Nationwide installation crews for commercial flooring. Precise results, on schedule.",
-    images: ["/og.svg"],
+    images: ["/site/og.svg"],
   },
   robots: {
     index: true,

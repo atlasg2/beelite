@@ -14,7 +14,7 @@ export default function Footer() {
       <div className="footer__inner">
         <div className="footer__brand">
           <Image
-            src="/logo.png"
+            src="/site/logo.png"
             alt="Elite Installation Services"
             width={600}
             height={255}

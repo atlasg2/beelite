@@ -126,6 +126,74 @@ ul {
   height: 2px;
   width: 24px;
   background: var(--white);
+  transition: transform 0.25s var(--ease), opacity 0.2s var(--ease);
+}
+
+.hamburger.is-open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger.is-open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.is-open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ---------- Mobile nav overlay ---------- */
+.mobilenav {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s var(--ease), visibility 0.25s var(--ease);
+}
+
+.mobilenav.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.mobilenav__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(80vw, 320px);
+  padding: 96px 28px 28px;
+  background: #0c0c0c;
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.4);
+  transform: translateX(100%);
+  transition: transform 0.3s var(--ease);
+}
+
+.mobilenav.is-open .mobilenav__list {
+  transform: translateX(0);
+}
+
+.mobilenav__link {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffffff;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: color 0.2s var(--ease);
+}
+
+.mobilenav__link:hover {
+  color: var(--red);
+}
+
+.mobilenav__quote {
+  margin-top: 18px;
 }
 
 /* ---------- Buttons ---------- */
@@ -163,6 +231,16 @@ ul {
 .btn--lg {
   min-height: 64px;
   padding: 0 36px;
+}
+
+/* Slimmer CTA — sized to its content rather than a fixed min-width */
+.btn--thin {
+  min-height: 50px;
+  min-width: 0;
+  padding: 0 30px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  border-radius: 8px;
 }
 
 .btn--solid {
@@ -304,11 +382,11 @@ ul {
   inset: 0;
   background: radial-gradient(
       120% 90% at 50% 42%,
-      rgba(0, 0, 0, 0.45) 0%,
-      rgba(0, 0, 0, 0.68) 70%,
-      rgba(0, 0, 0, 0.8) 100%
+      rgba(0, 0, 0, 0.16) 0%,
+      rgba(0, 0, 0, 0.36) 68%,
+      rgba(0, 0, 0, 0.5) 100%
     ),
-    linear-gradient(0deg, var(--ink) 0%, rgba(14, 15, 18, 0) 38%);
+    linear-gradient(0deg, var(--ink) 0%, rgba(14, 15, 18, 0) 42%);
 }
 
 .hero__inner {
@@ -338,13 +416,12 @@ ul {
 }
 
 .display {
-  font-family: var(--font-hero);
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-weight: 800;
   font-size: clamp(2.1rem, 5vw, 4rem);
-  line-height: 1.06;
-  letter-spacing: 0.012em;
-  text-transform: uppercase;
-  margin-bottom: 32px;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  margin-bottom: clamp(14px, 1.6vw, 22px);
   text-shadow: 0 2px 30px rgba(0, 0, 0, 0.45);
   animation: rise 1.3s var(--ease-smooth) 0.7s both;
 }
@@ -356,7 +433,7 @@ ul {
 }
 
 .display__line + .display__line {
-  margin-top: 14px;
+  margin-top: clamp(2px, 1vw, 14px);
 }
 
 .display__rule {
@@ -386,7 +463,7 @@ ul {
 
 .lede {
   max-width: 550px;
-  margin: 0 auto 46px;
+  margin: 0 auto clamp(14px, 1.8vw, 22px);
   font-size: clamp(1.1rem, 1.7vw, 1.45rem);
   line-height: 1.55;
   font-weight: 400;
@@ -628,9 +705,29 @@ ul {
     display: none;
   }
 
+  /* Center the logo; pin the hamburger to the right so it doesn't shift it. */
+  .topbar {
+    justify-content: center;
+  }
+
+  .brand {
+    margin: 0;
+  }
+
   .hamburger {
     display: flex;
-    margin-left: auto;
+    position: absolute;
+    right: var(--gutter);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 50;
+  }
+
+  /* While the menu overlay is open, pin the X to the corner above it. */
+  .hamburger.is-open {
+    position: fixed;
+    top: 32px;
+    transform: none;
   }
 
   .why__grid {
@@ -2612,4 +2709,388 @@ select.qfield__input {
     clip-path: none;
     transform: none;
   }
+}
+
+/* ============================================================
+   Service page — hero (ServiceHero / .shero)
+   ============================================================ */
+.shero {
+  position: relative;
+  min-height: clamp(560px, 78vh, 760px);
+  display: flex;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+.shero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.shero__bg img {
+  object-fit: cover;
+}
+
+.shero__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(10, 11, 13, 0.55) 0%, rgba(10, 11, 13, 0.35) 40%, rgba(10, 11, 13, 0.9) 100%),
+    linear-gradient(90deg, rgba(10, 11, 13, 0.85) 0%, rgba(10, 11, 13, 0.2) 70%);
+}
+
+.shero__inner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 140px var(--gutter) clamp(56px, 8vw, 96px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.shero__crumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: clamp(24px, 5vw, 48px);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.shero__crumb a:hover { color: var(--white); }
+.shero__crumb span[aria-hidden] { color: var(--muted-dim); }
+
+.shero__copy {
+  max-width: 760px;
+}
+
+.shero__eyebrow {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 18px;
+}
+
+.shero__title {
+  font-family: var(--font-hero);
+  font-weight: 700;
+  font-size: clamp(2.6rem, 7vw, 5rem);
+  line-height: 1.02;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--white);
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.45);
+}
+
+.shero__rule {
+  display: block;
+  width: 96px;
+  height: 4px;
+  margin-top: 22px;
+  border-radius: 2px;
+  background: var(--red);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.7s var(--ease) 0.35s;
+}
+
+.reveal.is-in .shero__rule { transform: scaleX(1); }
+
+.shero__lede {
+  max-width: 60ch;
+  margin-top: 26px;
+  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.shero__attrs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+}
+
+.chip__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+/* ============================================================
+   Service page — process (.procsec / ProcessFlow .procgrid)
+   ============================================================ */
+.procsec {
+  background: var(--panel);
+  padding: clamp(64px, 9vw, 120px) var(--gutter);
+}
+
+.procsec__head {
+  max-width: 760px;
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.procsec__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+}
+
+.procsec__intro {
+  max-width: 56ch;
+  margin-top: 18px;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.procgrid {
+  max-width: var(--maxw);
+  margin: clamp(40px, 5vw, 64px) auto 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(18px, 2.2vw, 28px);
+}
+
+.pstep {
+  position: relative;
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 28px 24px;
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
+}
+
+.pstep.is-shown {
+  opacity: 1;
+  transform: none;
+}
+
+.pstep__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 18px;
+  color: var(--red);
+  background: rgba(237, 28, 36, 0.1);
+  border-radius: 12px;
+}
+
+.pstep__icon svg { width: 26px; height: 26px; }
+
+/* Connector line flowing to the next step */
+.pstep__link {
+  position: absolute;
+  top: 52px;
+  right: -1px;
+  width: calc(clamp(18px, 2.2vw, 28px) + 2px);
+  height: 2px;
+  background: linear-gradient(90deg, var(--red), rgba(237, 28, 36, 0));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s var(--ease) 0.2s;
+}
+
+.pstep.is-shown .pstep__link { transform: scaleX(1); }
+
+.pstep__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+}
+
+.pstep__body {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* ============================================================
+   Service page — proudly serving (.serve)
+   ============================================================ */
+.serve {
+  background: var(--ink);
+  padding: clamp(64px, 9vw, 120px) var(--gutter);
+}
+
+.serve__head {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.serve__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+}
+
+.serve__grid {
+  max-width: var(--maxw);
+  margin: clamp(40px, 5vw, 64px) auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(18px, 2.4vw, 28px);
+}
+
+.servetile {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.servetile img {
+  object-fit: cover;
+  transition: transform 0.6s var(--ease);
+}
+
+.servetile:hover img { transform: scale(1.05); }
+
+.servetile__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 11, 13, 0) 35%, rgba(10, 11, 13, 0.85) 100%);
+}
+
+.servetile__label {
+  position: absolute;
+  left: 24px;
+  bottom: 22px;
+  z-index: 2;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: -0.01em;
+  color: var(--white);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================
+   Service page — the Elite difference (.diff)
+   ============================================================ */
+.diff {
+  background: var(--panel);
+  padding: clamp(64px, 9vw, 120px) var(--gutter);
+}
+
+.diff__grid {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: clamp(40px, 6vw, 90px);
+  align-items: center;
+}
+
+.diff__title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.8rem, 3.6vw, 2.8rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin-top: 4px;
+}
+
+.diff__body {
+  margin-top: 22px;
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+.diff__list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.diffitem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  background: var(--ink);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--red);
+  border-radius: 12px;
+}
+
+.diffitem__check {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  color: var(--red);
+  background: rgba(237, 28, 36, 0.1);
+  border-radius: 8px;
+}
+
+.diffitem__check svg { width: 18px; height: 18px; }
+
+.diffitem__label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+}
+
+/* ---------- Service page — responsive ---------- */
+@media (max-width: 980px) {
+  .procgrid { grid-template-columns: repeat(2, 1fr); }
+  .pstep__link { display: none; }
+  .diff__grid { grid-template-columns: 1fr; gap: 40px; }
+}
+
+@media (max-width: 760px) {
+  .serve__grid { grid-template-columns: 1fr; }
+  .shero__inner { padding-top: 120px; }
+}
+
+@media (max-width: 520px) {
+  .procgrid { grid-template-columns: 1fr; }
 }

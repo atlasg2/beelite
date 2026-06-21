@@ -5,18 +5,20 @@ import { useEffect, useState } from "react";
 
 const SLIDES = [
   {
-    src: "/hero-1.jpg",
+    src: "/hero/hero-1.jpg",
     alt: "Commercial weight-room flooring with custom logo tiles",
     titleTop: "Commercial",
     titleBottom: "Flooring Installation",
     body: "Elevate your commercial, fitness, and retail spaces with Elite Installation Services. Our expert team delivers precision flooring installation — flawless results and top-tier solutions for every project.",
+    href: "/flooring-installation",
   },
   {
-    src: "/hero-2.jpg",
+    src: "/hero/hero-2.jpg",
     alt: "High-end fitness facility with full equipment install",
     titleTop: "Fitness Equipment",
     titleBottom: "Assembly & Installation",
     body: "Power up your fitness spaces with Elite Installation Services. Our skilled crews handle flawless assembly and installation of every machine — delivered ready to train.",
+    href: "#fitness",
   },
 ];
 
@@ -77,15 +79,12 @@ export default function HeroSlideshow() {
           <p className="lede">
             <span className="lede__swap" key={active}>{slide.body}</span>
           </p>
-        </div>
 
-        <div className="cta-row">
-          <a href="#contact" className="btn btn--solid">
-            Get a quote
-          </a>
-          <a href="#projects" className="btn btn--ghost">
-            View projects
-          </a>
+          <div className="cta-row">
+            <a href={slide.href} className="btn btn--solid btn--thin">
+              Learn more
+            </a>
+          </div>
         </div>
       </div>
 
