@@ -10,19 +10,11 @@ export const metadata = {
 const SCENES = [
   {
     cls: "scene--A",
-    tag: "Option A — Image brightens as you scroll in, text drifts up",
+    tag: "Option A — Photo brightens hard as you scroll in; text drifts up",
   },
   {
     cls: "scene--B",
-    tag: "Option B — Deep parallax: photo glides behind the steady text",
-  },
-  {
-    cls: "scene--C",
-    tag: "Option C — Assemble: title, subtitle & body converge into place",
-  },
-  {
-    cls: "scene--D",
-    tag: "Option D — Focus pull: photo sharpens, then text fades as you pass",
+    tag: "Option B — Strong parallax: photo glides far behind the text",
   },
 ];
 

@@ -986,9 +986,9 @@ ul {
   font-size: clamp(1.05rem, 1.7vw, 1.35rem);
   font-weight: 700;
   line-height: 1.4;
-  color: var(--red-coral);
+  color: var(--red);
   margin-bottom: 20px;
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.85);
 }
 
 .opt-parallax .opt-body {
