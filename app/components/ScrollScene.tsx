@@ -20,6 +20,8 @@ export default function ScrollScene({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // Respect reduced motion — leave --p at its CSS default (static mid-state).
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let raf = 0;
 
     const update = () => {

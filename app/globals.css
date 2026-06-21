@@ -915,14 +915,36 @@ ul {
   align-items: center;
 }
 
-/* The moving image layer — taller than the row so it can shift */
+/* Stage fills the row; ScrollScene sets --p (0..1) on it as the row scrolls. */
+.opt-parallax__stage {
+  --p: 0.5;
+  position: absolute;
+  inset: 0;
+}
+
+/* The moving image layer */
 .opt-parallax__layer {
   position: absolute;
-  top: -15%;
-  left: 0;
-  right: 0;
-  height: 130%;
-  will-change: transform;
+  inset: 0;
+  will-change: transform, filter;
+}
+
+/* --- Scroll effect A: hard brighten on scroll-in + text drift --- */
+.opt-parallax__row--fxa .opt-parallax__layer {
+  transform: scale(calc(1.04 + var(--p) * 0.14));
+  filter: brightness(calc(0.32 + var(--p) * 0.92));
+}
+.opt-parallax__row--fxa .opt-parallax__content {
+  transform: translateY(calc((0.5 - var(--p)) * 120px));
+}
+
+/* --- Scroll effect B: strong parallax glide behind the text --- */
+.opt-parallax__row--fxb .opt-parallax__layer {
+  transform: translateY(calc((var(--p) - 0.5) * 44%)) scale(1.6);
+  filter: brightness(0.72);
+}
+.opt-parallax__row--fxb .opt-parallax__content {
+  transform: translateY(calc((0.5 - var(--p)) * -64px));
 }
 
 /* Symmetric scrim so centered text reads while the photo shows through */
@@ -940,14 +962,14 @@ ul {
 }
 
 .opt-parallax__content {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 2;
-  width: 100%;
-  max-width: var(--maxw);
-  margin: 0 auto;
   padding: 0 var(--gutter);
   display: flex;
+  align-items: center;
   justify-content: center;
+  will-change: transform;
 }
 
 .opt-parallax__panel {

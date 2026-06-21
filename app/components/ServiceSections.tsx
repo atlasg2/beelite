@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Reveal from "./Reveal";
-import ParallaxBg from "./ParallaxBg";
+import ScrollScene from "./ScrollScene";
 import type { ServiceItem } from "./serviceContent";
 
 export const ServiceBtn = ({
@@ -95,18 +95,34 @@ export function ParallaxServices({
 }) {
   return (
     <section className="opt-parallax" aria-label="Our services">
-      {items.map((s) => (
-        <article key={s.id} id={anchored ? s.id : undefined} className="opt-parallax__row">
-          <ParallaxBg src={s.img} alt={s.alt} />
-          <div className="opt-parallax__scrim" />
-          <div className="opt-parallax__content">
-            <Reveal className="opt-parallax__panel reveal">
-              <MaskedHeading text={s.head} headingClass="opt-parallax__title" />
-              <p className="opt-parallax__sub reveal-item">{s.sub}</p>
-              <p className="opt-body reveal-item">{s.body}</p>
-              <ServiceBtn label={s.btn} variant="red" className="reveal-item" />
-            </Reveal>
-          </div>
+      {items.map((s, i) => (
+        <article
+          key={s.id}
+          id={anchored ? s.id : undefined}
+          // Alternate the two approved scroll effects: A (brighten) then B (parallax).
+          className={`opt-parallax__row opt-parallax__row--fx${i % 2 === 0 ? "a" : "b"}`}
+        >
+          <ScrollScene className="opt-parallax__stage">
+            <div className="opt-parallax__layer">
+              <Image
+                src={s.img}
+                alt={s.alt}
+                fill
+                sizes="100vw"
+                quality={85}
+                style={{ objectFit: "cover" }}
+              />
+            </div>
+            <div className="opt-parallax__scrim" />
+            <div className="opt-parallax__content">
+              <Reveal className="opt-parallax__panel reveal">
+                <MaskedHeading text={s.head} headingClass="opt-parallax__title" />
+                <p className="opt-parallax__sub reveal-item">{s.sub}</p>
+                <p className="opt-body reveal-item">{s.body}</p>
+                <ServiceBtn label={s.btn} variant="red" className="reveal-item" />
+              </Reveal>
+            </div>
+          </ScrollScene>
         </article>
       ))}
     </section>
