@@ -153,7 +153,7 @@ export default function FlooringPage() {
           </Reveal>
         </section>
 
-        {/* The Elite difference */}
+        {/* The Elite difference — dark spec-board */}
         <section className="diff" aria-label="The Elite difference">
           <div className="diff__grid">
             <Reveal className="diff__text reveal">
@@ -168,13 +168,22 @@ export default function FlooringPage() {
                 precise results from the first plan through final installation.
               </p>
             </Reveal>
-            <Reveal className="diff__list reveal">
-              {DIFF.map((d) => (
-                <div className="diffitem reveal-item" key={d}>
-                  <span className="diffitem__check">{Check}</span>
-                  <span className="diffitem__label">{d}</span>
-                </div>
-              ))}
+
+            <Reveal className="diff__panel reveal-item">
+              <div className="diff__panelhead">
+                <span className="diff__panelkicker">Why Elite</span>
+                <span className="diff__panelmeta">
+                  {String(DIFF.length).padStart(2, "0")} advantages
+                </span>
+              </div>
+              <ul className="diff__list">
+                {DIFF.map((d) => (
+                  <li className="diffitem" key={d}>
+                    <span className="diffitem__check">{Check}</span>
+                    <span className="diffitem__label">{d}</span>
+                  </li>
+                ))}
+              </ul>
             </Reveal>
           </div>
         </section>

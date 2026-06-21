@@ -3156,9 +3156,16 @@ select.qfield__input {
 
 /* ============================================================
    Service page — the Elite difference (.diff)
+   Dark spec-board: the blueprint language of the process section,
+   inverted for contrast against the light quote that follows.
    ============================================================ */
 .diff {
-  background: var(--panel);
+  position: relative;
+  background-color: var(--ink);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 46px 46px;
   padding: clamp(64px, 9vw, 120px) var(--gutter);
 }
 
@@ -3166,8 +3173,8 @@ select.qfield__input {
   max-width: var(--maxw);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: clamp(40px, 6vw, 90px);
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: clamp(40px, 6vw, 88px);
   align-items: center;
 }
 
@@ -3178,6 +3185,7 @@ select.qfield__input {
   line-height: 1.08;
   letter-spacing: -0.02em;
   margin-top: 4px;
+  color: var(--white);
 }
 
 .diff__body {
@@ -3185,43 +3193,93 @@ select.qfield__input {
   font-size: 1.05rem;
   line-height: 1.65;
   color: var(--muted);
+  max-width: 52ch;
+}
+
+/* The spec panel — echoes the process cards (corner tick, hairlines) */
+.diff__panel {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px clamp(22px, 2.4vw, 30px) 12px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.diff__panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-top: 2px solid var(--red);
+  border-left: 2px solid var(--red);
+  border-top-left-radius: 14px;
+}
+
+.diff__panelhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.diff__panelkicker {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
+.diff__panelmeta {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
 }
 
 .diff__list {
+  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
 
 .diffitem {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 18px 22px;
-  background: var(--ink);
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--red);
-  border-radius: 12px;
+  gap: 15px;
+  padding: 17px 0;
+  border-top: 1px solid var(--line);
 }
+
+.diffitem:first-child { border-top: none; }
 
 .diffitem__check {
   display: grid;
   place-items: center;
   flex: none;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   color: var(--red);
-  background: rgba(237, 28, 36, 0.1);
-  border-radius: 8px;
+  background: rgba(237, 28, 36, 0.12);
+  border: 1px solid rgba(237, 28, 36, 0.25);
+  border-radius: 7px;
 }
 
-.diffitem__check svg { width: 18px; height: 18px; }
+.diffitem__check svg { width: 16px; height: 16px; }
 
 .diffitem__label {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 1.02rem;
   letter-spacing: -0.01em;
+  color: var(--white);
 }
 
 /* ---------- Service page — responsive ---------- */
@@ -3239,7 +3297,35 @@ select.qfield__input {
 }
 
 @media (max-width: 520px) {
-  .procgrid { grid-template-columns: 1fr; }
+  /* Single column: connect the steps vertically, drawing down the icon
+     column into the next card as each scrolls into view. */
+  .procgrid { grid-template-columns: 1fr; gap: 30px; }
+
+  .pstep__link,
+  .pstep:nth-child(4n) .pstep__link {
+    display: block;
+    top: auto;
+    bottom: -30px;
+    left: 50%;
+    right: auto;
+    width: 2px;
+    height: 30px;
+    transform: translateX(-50%) scaleY(0);
+    transform-origin: top;
+    transition: transform 0.55s var(--ease) 0.1s;
+  }
+
+  .pstep.is-shown .pstep__link {
+    transform: translateX(-50%) scaleY(1);
+  }
+
+  .pstep__link::after {
+    left: 50%;
+    right: auto;
+    top: auto;
+    bottom: -2px;
+    transform: translateX(-50%) rotate(135deg);
+  }
 }
 
 /* ============================================================
