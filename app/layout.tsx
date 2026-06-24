@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Hanken_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-// IBM Plex — engineered/technical, fits a construction-estimating tool. Sans for prose,
-// Mono for every dollar + square-foot (estimating is tabular data → instrument-readout numerals).
-const sans = IBM_Plex_Sans({
+// Hanken Grotesk — clean, slightly warm grotesque for the "Sheet" look. Plex Mono stays for every
+// dollar + square-foot (estimating is tabular data → tabular numerals).
+const sans = Hanken_Grotesk({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-body",
 });
 const mono = IBM_Plex_Mono({
@@ -16,8 +16,8 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Beelite — flooring estimating",
-  description: "Turn commercial flooring plans into bids.",
+  title: "Beelite",
+  description: "Beelite",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

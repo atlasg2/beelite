@@ -126,6 +126,11 @@ model ProjectFinish {
   category         String
   application      String             @default("other") // floor | base | transition | stair | accessory | other
   inScope          Boolean            @default(true)
+  // Reference (not bid math): printed product spec + where it was read from. Surfaced in the Sheet's
+  // App_Finishes tab and the in-app review so the estimator/GC can trace each finish to its source.
+  manufacturer     String? // printed manufacturer, when on the drawing (e.g. "Mannington")
+  product          String? // printed product/series (e.g. "Active Lines - Shift")
+  sourceSheet      String? // sheet the finish was read from (e.g. "A-701")
   // v5 rates (see claude/v5-math-contract.md). Install is always a per-unit sub rate.
   materialUnitCost Float              @default(0) // $/unit Elite pays the supplier
   installRate      Float              @default(0) // $/unit Elite pays the sub

@@ -36,16 +36,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
     chips: [...new Set(p.finishes.map((f) => f.code).filter(Boolean))].slice(0, 4),
   }));
 
-  const now = Date.now();
-  const weekMs = 7 * 24 * 60 * 60 * 1000;
-  const active = all.filter((r) => r.bidStatus.key !== "passed");
-  const kpis = [
-    { label: "Active bids", n: active.length, tone: "var(--marking)" },
-    { label: "Due this week", n: active.filter((r) => r.bidDate && +r.bidDate >= now && +r.bidDate <= now + weekMs).length, tone: "var(--gold)" },
-    { label: "Needs review", n: all.filter((r) => r.bidStatus.key === "reading").length, tone: "var(--blueprint)" },
-    { label: "Synced", n: all.filter((r) => r.bidStatus.key === "synced").length, tone: "var(--green)" },
-  ];
-
   const rows = all
     .filter((r) => !query || [r.name, r.gc, r.location].some((v) => v?.toLowerCase().includes(query)))
     .sort((a, b) => (a.bidStatus.key === "passed" ? 1 : 0) - (b.bidStatus.key === "passed" ? 1 : 0));
@@ -68,15 +58,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
           </div>
         </div>
 
-        <div className="dash-kpis">
-          {kpis.map((k) => (
-            <div key={k.label} className="dash-kpi" style={{ "--tone": k.tone } as React.CSSProperties}>
-              <div className="dash-kpi-label">{k.label}</div>
-              <div className="dash-kpi-num">{k.n}</div>
-            </div>
-          ))}
-        </div>
-
         {all.length === 0 ? (
           <div className="empty">
             <h2>No bids yet</h2>
@@ -89,9 +70,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
               <thead>
                 <tr>
                   <th>Bid</th>
-                  <th>GC / Builder</th>
                   <th>Location</th>
-                  <th>Bid due</th>
                   <th>Status</th>
                   <th>Scope</th>
                   <th>Created</th>
@@ -102,9 +81,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
                 {rows.map((r) => (
                   <tr key={r.id} className="dash-row" data-passed={r.bidStatus.key === "passed"}>
                     <td><Link href={`/projects/${r.id}`} className="dash-bid-name">{r.name}</Link></td>
-                    <td style={{ color: "var(--muted)" }}>{r.gc ?? "—"}</td>
                     <td style={{ color: "var(--muted)" }}>{r.location ?? "—"}</td>
-                    <td className="dash-mono">{fmtDate(r.bidDate)}</td>
                     <td><span className="dash-badge" data-tone={r.bidStatus.key}>{r.bidStatus.label}</span></td>
                     <td>
                       {r.chips.length ? (
@@ -119,7 +96,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ q
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: "center", color: "var(--muted)", padding: 28 }}>
+                    <td colSpan={6} style={{ textAlign: "center", color: "var(--muted)", padding: 28 }}>
                       No bids match “{q}”.
                     </td>
                   </tr>

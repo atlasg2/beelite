@@ -1,33 +1,33 @@
 :root {
-  color-scheme: dark;
-  /* "Measured worktable" in daylight — ink on warm paper, surveyor's marks for the money. */
-  --bg: #101216; /* near-black page (Elite) — white cards laid on it */
-  --bg-ink: #e8eaef; /* light text for elements sitting directly on the dark page */
-  --bg-muted: #9aa3b0; /* light secondary text on the dark page */
-  --surface: #181b21; /* dark card / panel */
-  --surface-2: #20242c; /* hover / raised */
-  --text: #e6e8ec; /* light text on dark */
-  --muted: #98a0ac; /* light secondary text */
-  --border: #282d36; /* subtle border on dark */
-  --border-strong: #3a414c;
-  --primary: #ed1c24; /* Elite red — primary actions */
-  --primary-hover: #ff2e35;
-  --primary-soft: #2a1416; /* dark red chip / badge fill */
+  color-scheme: light;
+  /* "Sheet" — clean spreadsheet on cool paper, ledger green for the money. */
+  --bg: #f4f6f7; /* cool light page — white cards laid on it */
+  --bg-ink: #15171c; /* dark text for elements sitting directly on the page */
+  --bg-muted: #6e747e; /* secondary text on the page */
+  --surface: #ffffff; /* white card / panel */
+  --surface-2: #f6f8f9; /* header rows / hover / raised */
+  --text: #15171c; /* dark ink */
+  --muted: #6e747e; /* secondary text */
+  --border: #e5e8ec; /* hairline / gridline */
+  --border-strong: #d6dae0;
+  --primary: #0b875b; /* ledger green — primary actions */
+  --primary-hover: #0a754f;
+  --primary-soft: #e2f2ea; /* soft green chip / badge fill */
   --primary-ink: #ffffff;
-  --marking: #ed1c24; /* Elite red — the money + where you are */
-  --marking-hover: #ff2e35;
-  --marking-soft: #2a1416; /* dark red tint */
-  --blueprint: #ff4046; /* brighter Elite red — finish codes on dark */
-  --blueprint-soft: #2a1416;
-  --gold: #d9a942; /* needs-review (brightened for dark) */
-  --green: #4cc38a; /* ready / synced (brightened for dark) */
+  --marking: #0b875b; /* green — the money + where you are */
+  --marking-hover: #0a754f;
+  --marking-soft: #e2f2ea;
+  --blueprint: #0b875b; /* green — finish codes + links */
+  --blueprint-soft: #e2f2ea;
+  --gold: #9a5600; /* needs-review amber */
+  --green: #0b875b; /* ready / synced */
   --ink: var(--text); /* alias — legacy tooltip refs */
   --line: var(--border); /* alias — legacy tooltip refs */
   --ok: var(--green); /* alias — lead-triage refs */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.45);
-  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.55);
+  --shadow-sm: 0 1px 2px rgba(16, 18, 24, 0.06);
+  --shadow-md: 0 10px 30px rgba(16, 18, 24, 0.10);
   --radius: 10px;
-  --font-display: var(--font-body); /* headers: Plex Sans, heavy + tight */
+  --font-display: var(--font-body); /* headers: Hanken Grotesk, heavy + tight */
 }
 
 * {
@@ -316,7 +316,7 @@ a.card:hover {
 .field textarea:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(237, 28, 36, 0.16);
+  box-shadow: 0 0 0 4px rgba(11, 135, 91, 0.16);
 }
 .field input[type="file"] {
   padding: 10px 14px;
@@ -659,7 +659,7 @@ a.card:hover {
 .filter-field select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(237, 28, 36, 0.16);
+  box-shadow: 0 0 0 4px rgba(11, 135, 91, 0.16);
 }
 .filters .grow { flex: 1; min-width: 220px; }
 .filters .grow input { width: 100%; }
@@ -943,11 +943,13 @@ a.card:hover {
 .dash-kpi-num { font-family: var(--font-mono); font-size: 33px; font-weight: 600; line-height: 1.05; margin-top: 7px; font-variant-numeric: tabular-nums; }
 
 .dash-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.dash-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.dash-table th { text-align: left; padding: 12px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 600; white-space: nowrap; }
-.dash-table td { padding: 13px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.dash-table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.dash-table th { text-align: left; padding: 11px 15px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--border); font-weight: 700; white-space: nowrap; }
+.dash-table td { padding: 12px 15px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+/* gridlines — the spreadsheet signature */
+.dash-table th:not(:last-child), .dash-table td:not(:last-child) { border-right: 1px solid var(--border); }
 .dash-table tr:last-child td { border-bottom: none; }
-.dash-row:hover td { background: var(--surface-2); }
+.dash-row:hover td { background: #f7faf8; }
 .dash-row[data-passed="true"] { opacity: .5; }
 .dash-bid-name { font-weight: 600; color: var(--text); }
 .dash-bid-name:hover { color: var(--blueprint); }
@@ -956,7 +958,7 @@ a.card:hover {
 .dash-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .dash-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .dash-badge[data-tone="synced"] { color: var(--green); background: rgba(70,194,138,.11); }
-.dash-badge[data-tone="pricing"] { color: var(--blueprint); background: rgba(91,155,213,.13); }
+.dash-badge[data-tone="pricing"] { color: #1f5fcc; background: #e6eefb; }
 .dash-badge[data-tone="reading"] { color: var(--gold); background: rgba(224,179,65,.13); }
 .dash-badge[data-tone="passed"], .dash-badge[data-tone="no_plans"] { color: var(--muted); background: rgba(147,163,180,.1); }
 

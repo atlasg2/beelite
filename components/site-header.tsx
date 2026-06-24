@@ -17,7 +17,6 @@ export function SiteHeader({ action }: { action?: ReactNode }) {
         </svg>
         <div>
           <div className="brand-name">Beelite</div>
-          <div className="brand-sub">Commercial flooring estimating</div>
         </div>
       </Link>
       {action}

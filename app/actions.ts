@@ -343,6 +343,9 @@ export async function confirmFinishes(
         category: f.category,
         application: f.application ?? "other",
         inScope: f.includedInFlooringScope,
+        manufacturer: f.manufacturer ?? null,
+        product: f.product ?? null,
+        sourceSheet: f.sourcePage ?? null,
       };
       const library = libByCode.get(f.code);
       const rate = library?.rate;

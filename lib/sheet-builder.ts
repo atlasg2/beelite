@@ -154,7 +154,7 @@ const summaryChecks: (string)[][] = [
 ];
 
 const NAMED = [
-  { name: "app_finishes", sheetId: ID.App_Finishes, startRowIndex: 1, endColumnIndex: 7 },
+  { name: "app_finishes", sheetId: ID.App_Finishes, startRowIndex: 1, endColumnIndex: 10 },
   { name: "app_takeoff", sheetId: ID.App_Takeoff, startRowIndex: 1, endColumnIndex: 6 },
   { name: "app_scope", sheetId: ID.App_Scope, startRowIndex: 1, endColumnIndex: 3 },
   { name: "app_rates", sheetId: ID.App_Rates, startRowIndex: 1, endColumnIndex: 6 },
@@ -174,6 +174,7 @@ export interface BidInput {
     code: string; type: string; description: string; unit: string; category: string; application: string;
     inScope: boolean; materialUnitCost: number; installRate: number; wastePct: number;
     cartonSize: number | null; materialSource: string;
+    manufacturer?: string | null; product?: string | null; sourceSheet?: string | null;
   }[];
   takeoff: { sheet: string | null; area: string; finishCode: string; qty: number; unit: string; status: string }[];
   scopeItems: { label: string; mode: string; allowance: number | null }[];
@@ -186,9 +187,12 @@ export interface BidInput {
 const ymd = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
 
 export function bidToTables(bid: BidInput) {
+  // Columns A–G are load-bearing (formulas XLOOKUP code/desc/unit by letter). H–J are appended
+  // reference-only (manufacturer / product / source sheet) — they change no formula, so the locked
+  // $15,205.54 regression is unaffected.
   const appFinishes: Cell[][] = [
-    ["code", "type", "description", "unit", "category", "inScope", "application"],
-    ...bid.finishes.map((f) => [f.code, f.type, f.description, f.unit, f.category, f.inScope ? "TRUE" : "FALSE", f.application]),
+    ["code", "type", "description", "unit", "category", "inScope", "application", "manufacturer", "product", "sourceSheet"],
+    ...bid.finishes.map((f) => [f.code, f.type, f.description, f.unit, f.category, f.inScope ? "TRUE" : "FALSE", f.application, f.manufacturer ?? "", f.product ?? "", f.sourceSheet ?? ""]),
   ];
   const appRates: Cell[][] = [
     ["code", "materialUnitCost", "installRate", "wastePct", "cartonSize", "materialSource"],

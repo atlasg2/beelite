@@ -9,13 +9,10 @@ export async function DashSidebar({ active }: { active?: "bids" | "permits" | "p
         <div className="dash-brand-mark">B</div>
         <div>
           <div className="dash-brand-name">Beelite</div>
-          <div className="dash-brand-sub">Flooring estimating</div>
         </div>
       </div>
       <nav className="dash-nav">
         <Link href="/" data-active={active === "bids"}>Bids</Link>
-        <Link href="/permits" data-active={active === "permits"}>Permits</Link>
-        <Link href="/plan-library" data-active={active === "plan-library"}>Plan library</Link>
         <Link href="/library" data-active={active === "rates"}>Standard rates</Link>
       </nav>
       <div className="dash-side-foot">

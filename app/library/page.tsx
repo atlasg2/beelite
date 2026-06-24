@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { getOrCreateDefaultCompany } from "@/lib/company";
 import { db } from "@/lib/db";
-import { SiteHeader } from "@/components/site-header";
+import { DashSidebar } from "@/components/dash-sidebar";
 import { LibraryEditor } from "@/components/library-editor";
 
 export const dynamic = "force-dynamic";
@@ -15,18 +14,18 @@ export default async function LibraryPage() {
   });
 
   return (
-    <main className="wrap">
-      <SiteHeader action={<Link href="/" className="btn">Home</Link>} />
-      <div className="page-head">
-        <h1 className="page-title">Standard rates</h1>
-        <span className="page-count">{items.length} finishes</span>
-      </div>
-      <p className="detail-meta">
-        Your company’s default material + install rates. Every new bid auto-fills from here on an exact
-        finish-code match — so you’re never starting from zero or waiting on a sub to price.
-      </p>
+    <div className="dash">
+      <DashSidebar active="rates" />
+      <main className="dash-main">
+        <div className="dash-top">
+          <div>
+            <h1>Standard rates</h1>
+            <p className="dash-sub">
+              Your default material + install rates. New bids auto-fill from here when the finish code matches.
+            </p>
+          </div>
+        </div>
 
-      <section className="section">
         <LibraryEditor
           initial={items.map((i) => ({
             code: i.code,
@@ -41,7 +40,7 @@ export default async function LibraryPage() {
             materialSource: i.rate?.materialSource ?? "elite_furnishes",
           }))}
         />
-      </section>
-    </main>
+      </main>
+    </div>
   );
 }
